@@ -1,0 +1,44 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.34931.60
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{5B6B63F4-083F-4656-86AD-C9D0B7C5192D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{EEFB8D10-5D62-4321-A0B5-88ED51BC32DE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Consist.Doxi.MCPServer", "Consist.Doxi.MCPServer\Consist.Doxi.MCPServer.csproj", "{7E86C793-8D66-95DC-C0D8-D09038212CE3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Consist.Doxi.MCPServer.Domain", "Consist.Doxi.MCPServer.Domain\Consist.Doxi.MCPServer.Domain.csproj", "{74ADA7C1-2653-8003-8B24-AE74A9BD25F1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Consist.MCPServer.DoxiAPIClient", "services\Consist.MCPServer.DoxiClient\Consist.MCPServer.DoxiAPIClient.csproj", "{77A0A614-D1BF-49AB-A2FD-38E8AA27833F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7E86C793-8D66-95DC-C0D8-D09038212CE3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E86C793-8D66-95DC-C0D8-D09038212CE3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E86C793-8D66-95DC-C0D8-D09038212CE3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E86C793-8D66-95DC-C0D8-D09038212CE3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{74ADA7C1-2653-8003-8B24-AE74A9BD25F1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{74ADA7C1-2653-8003-8B24-AE74A9BD25F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{74ADA7C1-2653-8003-8B24-AE74A9BD25F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{74ADA7C1-2653-8003-8B24-AE74A9BD25F1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{77A0A614-D1BF-49AB-A2FD-38E8AA27833F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{77A0A614-D1BF-49AB-A2FD-38E8AA27833F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{77A0A614-D1BF-49AB-A2FD-38E8AA27833F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{77A0A614-D1BF-49AB-A2FD-38E8AA27833F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{77A0A614-D1BF-49AB-A2FD-38E8AA27833F} = {5B6B63F4-083F-4656-86AD-C9D0B7C5192D}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {41A2247B-C888-4223-9953-56395B780951}
+	EndGlobalSection
+EndGlobal

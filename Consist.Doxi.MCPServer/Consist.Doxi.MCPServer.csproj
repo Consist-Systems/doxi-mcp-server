@@ -1,0 +1,50 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <DockerfileContext>.</DockerfileContext>
+    <DockerComposeProjectPath>docker-compose.dcproj</DockerComposeProjectPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Consist.CVCenterAPI.Domain\**" />
+    <Compile Remove="Consist.EmplyeeService.Domain\**" />
+    <Compile Remove="Consist.ProjectName.Domain\**" />
+    <Compile Remove="Tests\**" />
+    <Content Remove="Consist.CVCenterAPI.Domain\**" />
+    <Content Remove="Consist.EmplyeeService.Domain\**" />
+    <Content Remove="Consist.ProjectName.Domain\**" />
+    <Content Remove="Tests\**" />
+    <EmbeddedResource Remove="Consist.CVCenterAPI.Domain\**" />
+    <EmbeddedResource Remove="Consist.EmplyeeService.Domain\**" />
+    <EmbeddedResource Remove="Consist.ProjectName.Domain\**" />
+    <EmbeddedResource Remove="Tests\**" />
+    <None Remove="Consist.CVCenterAPI.Domain\**" />
+    <None Remove="Consist.EmplyeeService.Domain\**" />
+    <None Remove="Consist.ProjectName.Domain\**" />
+    <None Remove="Tests\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove=".dockerignore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Consist.Exceptions" Version="1.0.1" />
+    <PackageReference Include="Microsoft.SemanticKernel" Version="1.66.0" />
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.17.0" />
+    <PackageReference Include="ModelContextProtocol.AspNetCore" Version="0.4.0-preview.3" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="NLog.Web.AspNetCore" Version="5.3.11" />
+    <PackageReference Include="PoweredSoft.DynamicJwtBearer.DynamicAuthority" Version="0.1.0" />
+    <PackageReference Include="Stef.ModelContextProtocol.SemanticKernel" Version="0.6.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Consist.Doxi.MCPServer.Domain\Consist.Doxi.MCPServer.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,20 @@
+{
+  "servers": {
+    "DoxiMcpServer": {
+      "type": "http",
+      "url": "http://localhost:5287/test1/mcp"
+    }
+  },
+  "inputs": [
+    
+    {
+      "key": "username",
+      "description": "Username for login"
+    },
+    {
+      "key": "password",
+      "description": "Password for login",
+      "secret": true
+    }
+  ]
+}
