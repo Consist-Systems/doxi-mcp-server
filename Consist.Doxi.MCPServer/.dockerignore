@@ -1,0 +1,10 @@
+**/bin
+**/obj
+**/.vs
+**/.git
+Dockerfile*
+.git
+.vs
+node_modules
+bin
+obj
