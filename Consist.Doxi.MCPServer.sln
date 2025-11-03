@@ -11,7 +11,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Consist.Doxi.MCPServer", "C
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Consist.Doxi.MCPServer.Domain", "Consist.Doxi.MCPServer.Domain\Consist.Doxi.MCPServer.Domain.csproj", "{74ADA7C1-2653-8003-8B24-AE74A9BD25F1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Consist.MCPServer.DoxiAPIClient", "services\Consist.MCPServer.DoxiClient\Consist.MCPServer.DoxiAPIClient.csproj", "{77A0A614-D1BF-49AB-A2FD-38E8AA27833F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Consist.MCPServer.DoxiAPIClient", "Services\Consist.MCPServer.DoxiClient\Consist.MCPServer.DoxiAPIClient.csproj", "{77A0A614-D1BF-49AB-A2FD-38E8AA27833F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
