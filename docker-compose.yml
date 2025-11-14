@@ -1,0 +1,6 @@
+services:
+  consist.doxi.mcpserver:
+    image: ${DOCKER_REGISTRY-}consistdoximcpserver
+    build:
+      context: .
+      dockerfile: Consist.Doxi.MCPServer/Dockerfile
