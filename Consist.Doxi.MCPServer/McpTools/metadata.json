@@ -1,14 +1,19 @@
 {
   "toolName": "FlowsTool",
   "category": "Flows",
-  "description": "Manages document signing flows via the Doxi Sign API, including creation, editing, status checks, and attachment management.",
+  "description": "Manages document signing flows, templates, kits, users and webhooks via the Doxi Sign API.",
   "docsBaseUrl": "https://apidocs.doxi-sign.com/",
+  "notes": [
+    "All methods require username and password (Doxi API credentials).",
+    "When the underlying HTTP API returns JSON, the MCP tool returns TextContent with a JSON string.",
+    "When the underlying HTTP API returns a binary stream (PDF, ZIP, etc.), the MCP tool returns DataContent with bytes and contentType."
+  ],
   "methods": [
     {
       "name": "GetAllFlows",
       "summary": "Retrieves all signing flows available for the current tenant.",
       "endpoint": "GET /flow",
-      "returns": "GetAllFlowsResponse JSON.",
+      "returns": "JSON array of signing flows (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password."
@@ -16,44 +21,44 @@
     },
     {
       "name": "AddSignFlow",
-      "summary": "Creates a new signing flow and uploads a document for signing.",
+      "summary": "Creates a new signing flow and uploads a document.",
       "endpoint": "POST /flow",
+      "returns": "CreateFlowResponse JSON with SignFlowId and signer links (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "createFlowJsonRequest": "Flow definition including recipients, elements, and metadata.",
-        "documentFile": "PDF document bytes to upload (send as base64 when calling via JSON)."
-      },
-      "returns": "CreateFlowResponse JSON."
+        "createFlowJsonRequest": "ExCreateFlowRequestBase JSON object describing the flow (SenderKey, Description, FlowElements, Users, Recipients, reminders, expiration, etc.).",
+        "documentFile": "Raw document bytes for the flow (PDF/Word/Image). In MCP this is provided as DataContent.data and sent as a file/stream body."
+      }
     },
     {
       "name": "EditSignFlow",
-      "summary": "Edits an existing signing flow, replacing documents or parameters.",
-      "endpoint": "POST /flow/edit",
-      "returns": "String indicating operation result.",
+      "summary": "Edits an existing signing flow (recipients, fields, metadata, etc.).",
+      "endpoint": "POST /v2/flow/edit",
+      "returns": "EditFlowResponse JSON (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "request": "Edits to apply to an existing flow (document updates, recipients, fields)."
+        "request": "EditFlowRequest JSON as defined in the OpenAPI."
       }
     },
     {
       "name": "GetDocument",
-      "summary": "Downloads a document (PDF) associated with a signing flow.",
-      "endpoint": "GET /flow/{signFlowId}/Document/{withSigns}",
-      "returns": "Byte array representing the file.",
+      "summary": "Downloads the PDF document associated with a signing flow.",
+      "endpoint": "GET /flow/{signFlowId}/Document",
+      "returns": "PDF byte array as DataContent (contentType = \"application/pdf\").",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
         "signFlowId": "The unique ID of the signing flow.",
-        "withSigns": "Whether to include visual signatures in the returned PDF (default: true)."
+        "withSigns": "Boolean: if true, includes signatures/overlays; if false, returns the original document (default: true)."
       }
     },
     {
       "name": "GetFlow",
-      "summary": "Retrieves metadata for a specific signing flow.",
+      "summary": "Retrieves full metadata for a signing flow.",
       "endpoint": "GET /flow/{signFlowId}",
-      "returns": "GetFlowMetadataResponse JSON.",
+      "returns": "Flow metadata JSON (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
@@ -62,31 +67,31 @@
     },
     {
       "name": "SearchFlow",
-      "summary": "Searches flows using filters (status, date, signer, etc.).",
-      "endpoint": "POST /flow/search",
-      "returns": "Array of matching flow IDs.",
+      "summary": "Searches signing flows by filters such as signer, date range, status, custom fields, kit, etc.",
+      "endpoint": "POST /ex/flow/search",
+      "returns": "Search result JSON with matching flows (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "request": "Filter object for searching flows (status, date range, signer, custom fields)."
+        "request": "GetFlowsByFilterRequest JSON (SignatureFlowStatus, Signer, Sender, FromDate, ToDate, Description, KitId, CustomFields, etc.)."
       }
     },
     {
       "name": "GetFlowsStatus",
-      "summary": "Retrieves statuses for multiple flows.",
-      "endpoint": "POST /flow/status",
-      "returns": "Array of GetFlowsStatusResponse.",
+      "summary": "Retrieves statuses for multiple flows in a single call.",
+      "endpoint": "POST /ex/flow/status",
+      "returns": "Array of flow status responses (TextContent, JSON).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "request": "Array of flow IDs to fetch statuses for."
+        "request": "GetFlowsStatusRequest JSON containing an array of SignFlowIds."
       }
     },
     {
       "name": "GetFlowStatus",
-      "summary": "Retrieves current status for a single flow.",
-      "endpoint": "GET /flow/{signFlowId}/status",
-      "returns": "GetFlowStatusResponse JSON.",
+      "summary": "Gets the current status of a specific signing flow.",
+      "endpoint": "GET /ex/flow/{signFlowId}/status",
+      "returns": "GetFlowStatusResponse JSON (TextContent) including signers, sender, status, and custom fields.",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
@@ -95,44 +100,44 @@
     },
     {
       "name": "SetFlowAction",
-      "summary": "Performs an action on a flow (approve, reject, etc.).",
+      "summary": "Sets an action on a flow such as approve, reject, delegate, etc.",
       "endpoint": "POST /flow/{signFlowId}/action",
-      "returns": "void",
+      "returns": "JSON { success: true, data: { signFlowId } } (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
         "signFlowId": "The unique ID of the signing flow.",
-        "request": "Action to perform on the flow (StopFlow, ResendDeclinedFlow, SendReminder, ArchiveFlow, ReleaseFlow)."
+        "request": "SetFlowActionRequest JSON describing the action (e.g. Approve, Decline, Delegate) and optional message."
       }
     },
     {
       "name": "SetSignatures",
-      "summary": "Sets or updates signatures for a specific flow.",
+      "summary": "Updates or adds signatures to a flow.",
       "endpoint": "POST /flow/{signFlowId}/SetSignatures",
-      "returns": "void",
+      "returns": "JSON { success: true, data: { signFlowId } } (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
         "signFlowId": "The unique ID of the signing flow.",
-        "request": "Signature operation (Approve/Decline/Save) and optional field values, attachments, or metadata."
+        "request": "ExSetSignFlowRequest JSON including signature data for one or more signers."
       }
     },
     {
       "name": "ReplaceSigner",
-      "summary": "Replaces a signer in an existing flow.",
+      "summary": "Replaces an existing signer in a signing flow.",
       "endpoint": "POST /flow/ReplaceSigner",
-      "returns": "void",
+      "returns": "JSON { success: true } (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "request": "Payload to replace an existing signer with a new signer (including contact details and flags)."
+        "request": "ExReplaceSignerRequest JSON including old and new signer keys and related options."
       }
     },
     {
       "name": "GetFlowAttachments",
-      "summary": "Retrieves all attachments associated with a flow.",
+      "summary": "Gets all attachments of a flow as a single ZIP.",
       "endpoint": "GET /flow/{signFlowId}/attachments",
-      "returns": "Byte array of files.",
+      "returns": "Byte array (ZIP) as DataContent (contentType = \"application/octet-stream\").",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
@@ -141,322 +146,518 @@
     },
     {
       "name": "GetFlowAttachmentField",
-      "summary": "Retrieves a specific attachment field from a flow.",
+      "summary": "Gets a specific attachment field from a flow.",
       "endpoint": "POST /flow/{signFlowId}/AttachmentField",
-      "returns": "Byte array of file content.",
+      "returns": "Attachment file bytes as DataContent (contentType = \"application/octet-stream\").",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
         "signFlowId": "The unique ID of the signing flow.",
-        "request": "Element label plus signer identification of the attachment field to download."
+        "request": "GetFlowAttachmentFieldRequest JSON (identifies the field/attachment to download)."
       }
     },
     {
       "name": "AddAttachmentAsBase64ToFlow",
-      "summary": "Adds a base64-encoded attachment to a signing flow.",
+      "summary": "Adds a base64-encoded attachment to an existing flow.",
       "endpoint": "POST /flow/{signFlowId}/attachments/base64",
-      "returns": "AddAttachmentAsBase64ToFlowResponse JSON.",
+      "returns": "AddAttachmentAsBase64ToFlowResponse JSON (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
         "signFlowId": "The unique ID of the signing flow.",
-        "request": "Attachment file (name and base64 content) and the user who added it."
+        "request": "AddAttachmentBase64ToFlowRequest JSON containing Base64Content, FileName and optional metadata."
       }
     },
     {
       "name": "CreateFlowFromTemplate",
-      "summary": "Creates a new signing flow from a template",
+      "summary": "Creates a new signing flow from an existing template.",
       "endpoint": "POST /ex/template/CreateFlowFromTemplate/{templateId}",
+      "returns": "CreateFlowResponse-like JSON with new SignFlowId and signer links (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "templateId": "The template ID to instantiate.",
-        "request": "Values and recipients to hydrate the template when creating a flow."
-      },
-      "returns": "JSON object."
+        "templateId": "The template ID to base the flow on.",
+        "request": "CreateFlowFromTemplateRequest JSON (Description, SenderKey, Users, Recipients, CustomFields, etc.)."
+      }
     },
     {
       "name": "AddTemplate",
-      "summary": "Creates a new user template",
+      "summary": "Creates a new user template from a document and template definition.",
       "endpoint": "POST /ex/template",
+      "returns": "Template creation result JSON (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "request": "Template metadata and file(s) to add."
+        "addTemplateRequest": "AddTemplateRequest JSON. See types.AddTemplateRequest. IMPORTANT: TemplateDocument must be filled from the attached file: TemplateDocument.uri = original file name, TemplateDocument.data = raw file bytes."
       },
-      "returns": "JSON object."
+      "examples": {
+        "callWithAttachedPdf": {
+          "description": "Create a Hebrew registration form template from an uploaded PDF.",
+          "arguments": {
+            "username": "your_username",
+            "password": "your_password",
+            "addTemplateRequest": {
+              "templateName": "שאלון הרשמה לקורס מורי דרך - מכון אבשלום",
+              "flowElements": [
+                {
+                  "label": "שם משפחה",
+                  "type": "TextBox",
+                  "required": true
+                }
+              ],
+              "users": [],
+              "sendMethodType": "QueuedFlow",
+              "templateType": "Standard",
+              "captchaDisabled": false,
+              "preliminaryText": null,
+              "signFlowDescriptionMessage": null,
+              "isAutomaticRemainder": false,
+              "dayesForAutomaticRemainder": 0,
+              "isSendApprovalMailToAllSigners": false,
+              "recipients": [],
+              "disableSBS": false,
+              "flowTwoFactorEnabled": null,
+              "flowExpirationDate": null,
+              "senderKey": {
+                "key": "doxiapiuser@mydomain.com",
+                "type": "UserEmail"
+              },
+              "templateDocument": {
+                "uri": "registration_tour_guide_avshalom.pdf",
+                "data": "<binary of the attached PDF>",
+                "contentType": "application/pdf"
+              }
+            }
+          }
+        }
+      }
     },
     {
       "name": "UpdateTemplate",
-      "summary": "Updates an existing template",
+      "summary": "Updates an existing template definition.",
       "endpoint": "PUT /ex/template/{templateId}",
+      "returns": "JSON { success: true, data: { templateId } } (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "templateId": "Template ID.",
-        "request": "New metadata, file(s), or settings to update."
-      },
-      "returns": "void"
+        "templateId": "The ID of the template to update.",
+        "request": "ExUpdateTemplateRequest JSON (TemplateName, FlowElements, Users, SendMethodType, TemplateType, CaptchaDisabled, PreliminaryText, SignFlowDescriptionMessage, IsAutomaticRemainder, DayesForAutomaticRemainder, IsSendApprovalMailToAllSigners, Recipients, DisableSBS, FlowTwoFactorEnabled, FlowExpirationDate, ImagesList)."
+      }
     },
     {
       "name": "DeleteUserTemplate",
-      "summary": "Deletes a user template",
+      "summary": "Deletes a user template.",
       "endpoint": "DELETE /ex/template/{templateId}",
+      "returns": "JSON { success: true, data: { templateId } } (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "templateId": "Template ID.",
-        "request": "Delete options for the template."
-      },
-      "returns": "void"
+        "templateId": "The ID of the template to delete.",
+        "request": "DeleteTemplateRequest JSON (additional delete options if any)."
+      }
     },
     {
       "name": "GetTemplate",
-      "summary": "Retrieves template metadata",
+      "summary": "Retrieves template metadata.",
       "endpoint": "GET /ex/template/{templateId}",
+      "returns": "Template metadata JSON (TextContent), including TemplateName, FlowElements, Users, SendMethodType, TemplateType, etc.",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "templateId": "Template ID."
-      },
-      "returns": "JSON object."
+        "templateId": "The ID of the template."
+      }
     },
     {
       "name": "DeleteAttachmentFromTemplate",
-      "summary": "Deletes an attachment from a template",
+      "summary": "Deletes an attachment from a template.",
       "endpoint": "DELETE /ex/template/{templateId}/attachments/{attachmentId}",
+      "returns": "JSON { success: true, data: { templateId, attachmentId } } (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "templateId": "Template ID.",
-        "attachmentId": "Attachment ID within the template."
-      },
-      "returns": "void"
+        "templateId": "The template ID.",
+        "attachmentId": "The attachment ID to remove from the template."
+      }
     },
     {
       "name": "DocumentInfo",
-      "summary": "Extracts information from a document file",
+      "summary": "Extracts structured information from a document file (e.g. pages, fields, text).",
       "endpoint": "POST /ex/document/info",
+      "returns": "Document info JSON (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "document": "Document bytes (PDF); send as base64 when calling via JSON."
-      },
-      "returns": "JSON object."
+        "document": "Raw document bytes (PDF). In MCP this is provided as DataContent.data and sent as a file/stream body."
+      }
     },
     {
       "name": "DocumentInfoBase64",
-      "summary": "Extracts information from a document provided as base64",
+      "summary": "Extracts document info from a base64-encoded document.",
       "endpoint": "POST /ex/document/info/base64",
+      "returns": "Document info JSON (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "request": "GetDocumentInfoRquest containing base64-encoded document."
-      },
-      "returns": "JSON object."
+        "request": "GetDocumentInfoRquest JSON (Base64DocumentFile, DocumentFileName, and optional settings)."
+      }
     },
     {
       "name": "SearchInDocumentBase64",
-      "summary": "Searches for text or patterns in a base64-encoded document",
+      "summary": "Searches for text or patterns in a base64-encoded document.",
       "endpoint": "POST /ex/document/search/base64",
+      "returns": "Search result JSON (TextContent) with matched locations.",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "request": "SearchInDocumentBase64Request with base64 document and search query/options."
-      },
-      "returns": "JSON object."
+        "request": "SearchInDocumentBase64Request JSON containing Base64DocumentFile, search term(s), and options."
+      }
     },
     {
       "name": "SearchInDocument",
-      "summary": "Searches for text or patterns in an uploaded document",
+      "summary": "Searches for text or patterns in an uploaded document.",
       "endpoint": "POST /ex/document/search",
+      "returns": "Search result JSON (TextContent) with matched locations.",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "file": "Document bytes (PDF); send as base64 in JSON.",
-        "request": "SearchInDocumentRequest with query/options."
-      },
-      "returns": "JSON object."
+        "file": "Raw document bytes (PDF) to search in.",
+        "request": "SearchInDocumentRequest JSON containing search term(s) and options."
+      }
     },
     {
       "name": "MergeDocuments",
-      "summary": "Merges multiple documents into a single file",
+      "summary": "Merges multiple PDF documents into a single PDF.",
       "endpoint": "POST /ex/document/merge",
+      "returns": "Merged PDF as DataContent (contentType = \"application/pdf\").",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "documents": "Collection of document byte arrays to merge (order is preserved)."
-      },
-      "returns": "Byte array."
+        "documents": "Array of PDF byte arrays to merge, in order."
+      }
     },
     {
       "name": "AddKit",
-      "summary": "Creates a new kit",
+      "summary": "Creates a new kit (a reusable bundle of flows or templates).",
       "endpoint": "POST /ex/kit",
+      "returns": "Kit creation result JSON (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "request": "Kit definition aggregating documents/flows."
-      },
-      "returns": "JSON object."
+        "request": "ExAddKitRequest JSON describing the kit (name, flows/templates, settings)."
+      }
     },
     {
       "name": "UpdateKit",
-      "summary": "Updates an existing kit",
+      "summary": "Updates an existing kit.",
       "endpoint": "PUT /ex/kit/{kitId}",
+      "returns": "JSON { success: true, data: { kitId } } (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "kitId": "Kit ID.",
-        "request": "Update payload for the kit."
-      },
-      "returns": "void"
+        "kitId": "The ID of the kit to update.",
+        "request": "ExUpdateKitRequest JSON with updated kit configuration."
+      }
     },
     {
       "name": "GetKit",
-      "summary": "Retrieves kit metadata",
+      "summary": "Retrieves metadata for a kit.",
       "endpoint": "GET /ex/kit/{kitId}",
+      "returns": "Kit metadata JSON (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "kitId": "Kit ID."
-      },
-      "returns": "JSON object."
+        "kitId": "The ID of the kit."
+      }
     },
     {
       "name": "GetKits",
-      "summary": "Lists kits for the tenant",
+      "summary": "Lists all kits available for the tenant.",
       "endpoint": "GET /ex/kit",
+      "returns": "JSON array of kits (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password."
-      },
-      "returns": "JSON object."
-    },
-    {
-      "name": "GetFormSettings",
-      "summary": "Downloads form settings for a company form",
-      "endpoint": "GET /ex/company/{companyId}/forms/{formId}/settings",
-      "params": {
-        "username": "Doxi API username.",
-        "password": "Doxi API password.",
-        "companyId": "Company/Tenant ID.",
-        "formId": "Form ID."
-      },
-      "returns": "Byte array."
+      }
     },
     {
       "name": "GetUserGroups",
-      "summary": "Retrieves groups for a user identified by key type and value",
+      "summary": "Retrieves groups for a user identified by key type and value.",
       "endpoint": "GET /ex/user/{searchType}/{searchValue}/groups",
+      "returns": "JSON array of groups (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "searchType": "User key type (UserId, UserEmail, UserPhone, UserName, GroupId).",
-        "searchValue": "Key value for the user."
-      },
-      "returns": "JSON object."
+        "searchType": "ParticipantKeyType enum value (e.g. UserEmail, UserPhone).",
+        "searchValue": "Search key for the user (e.g. email address or phone)."
+      }
     },
     {
       "name": "GetUserTemplates",
-      "summary": "Retrieves templates of a user identified by key type and value",
+      "summary": "Retrieves templates for a user identified by key type and value.",
       "endpoint": "GET /ex/user/{searchType}/{searchValue}/templates",
+      "returns": "JSON array of templates (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "searchType": "User key type (UserId, UserEmail, UserPhone, UserName, GroupId).",
-        "searchValue": "Key value for the user."
-      },
-      "returns": "JSON object."
+        "searchType": "ParticipantKeyType enum value.",
+        "searchValue": "Value for the user (e.g. email)."
+      }
     },
     {
       "name": "GetUserIdByEmail",
-      "summary": "Retrieves the user ID by email",
+      "summary": "Retrieves the user ID by email.",
       "endpoint": "GET /ex/user/byEmail/{email}/id",
+      "returns": "JSON object with userId (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "email": "User email address."
-      },
-      "returns": "JSON object."
+        "email": "Email address of the user."
+      }
     },
     {
       "name": "GetUsers",
-      "summary": "Queries users with filter parameters",
+      "summary": "Queries users with filter parameters.",
       "endpoint": "GET /ex/users",
+      "returns": "Paged results JSON (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "queryParams": "Key-value filters (e.g., page, pageSize, name, email)."
-      },
-      "returns": "JSON object."
+        "queryParams": "Dictionary<string, object> of filter fields (as query string)."
+      }
     },
     {
       "name": "AddSubscription",
-      "summary": "Adds a new webhook subscription",
+      "summary": "Adds a new webhook subscription.",
       "endpoint": "POST /ex/webhook",
+      "returns": "WebhookSubscriptionResponse JSON (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "request": "WebhookSubscription configuration (target URL, events, secret, headers)."
-      },
-      "returns": "JSON object."
+        "request": "WebhookSubscription JSON (URL, events, secrets, filters, etc.)."
+      }
     },
     {
       "name": "WebHookCheck",
-      "summary": "Validates and previews a webhook payload",
+      "summary": "Validates and previews a webhook payload.",
       "endpoint": "POST /ex/webhook/check",
+      "returns": "Webhook preview JSON (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "request": "WebhookSubscription to validate/preview (no persistence)."
-      },
-      "returns": "JSON object."
+        "request": "WebhookSubscription JSON."
+      }
     },
     {
       "name": "GetAllWebhookSubscription",
-      "summary": "Lists all webhook subscriptions",
+      "summary": "Lists all webhook subscriptions.",
       "endpoint": "GET /ex/webhook",
+      "returns": "JSON array of webhook subscriptions (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password."
-      },
-      "returns": "JSON object."
+      }
     },
     {
       "name": "SearchWebhookCallLogs",
-      "summary": "Searches webhook call logs for a subscription",
+      "summary": "Searches webhook call logs for a subscription.",
       "endpoint": "POST /ex/webhook/{subscriptionId}/logs/search",
+      "returns": "Paged logs JSON (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
         "subscriptionId": "Webhook subscription ID.",
-        "request": "RequestWebhookSenderLog search filters (date range, status, pagination)."
-      },
-      "returns": "JSON object."
+        "request": "RequestWebhookSenderLog JSON (filters for log search)."
+      }
     },
     {
       "name": "UpdateWebhookSubscription",
-      "summary": "Updates a webhook subscription",
+      "summary": "Updates a webhook subscription.",
       "endpoint": "PUT /ex/webhook/{subscriptionId}",
+      "returns": "JSON { success: true, data: { subscriptionId } } (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
         "subscriptionId": "Webhook subscription ID.",
-        "request": "WebhookSubscription updates."
-      },
-      "returns": "void"
+        "request": "WebhookSubscription JSON."
+      }
     },
     {
       "name": "DeleteSubscription",
-      "summary": "Deletes a webhook subscription",
+      "summary": "Deletes a webhook subscription.",
       "endpoint": "DELETE /ex/webhook/{subscriptionId}",
+      "returns": "JSON { success: true, data: { subscriptionId } } (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
         "subscriptionId": "Webhook subscription ID."
-      },
-      "returns": "void"
+      }
     }
-  ]
+  ],
+  "types": {
+    "DataContent": {
+      "description": "Wrapper for binary data in MCP. Used for files (PDFs, ZIPs, etc.).",
+      "type": "object",
+      "properties": {
+        "uri": {
+          "type": "string",
+          "description": "Original file name, e.g. \"document.pdf\"."
+        },
+        "data": {
+          "type": "string",
+          "description": "Raw bytes of the file as a binary buffer (in MCP this is sent as bytes, not base64)."
+        },
+        "contentType": {
+          "type": "string",
+          "description": "MIME type, e.g. \"application/pdf\"."
+        }
+      },
+      "required": [ "uri", "data" ]
+    },
+    "ParticipantKey": {
+      "description": "Identifies a user or group in Doxi.",
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "The key value (e.g. email, phone, userId)."
+        },
+        "type": {
+          "type": "string",
+          "description": "ParticipantKeyType enum value: UserId, UserEmail, UserPhone, UserName, GroupId."
+        }
+      },
+      "required": [ "key", "type" ]
+    },
+    "AddTemplateRequest": {
+      "description": "Request to add a new template. Wraps ExBaseTemplate plus SenderKey and TemplateDocument.",
+      "type": "object",
+      "properties": {
+        "templateName": {
+          "type": "string",
+          "description": "The name of the template."
+        },
+        "flowElements": {
+          "type": "array",
+          "description": "All the elements (fields) of the template.",
+          "items": {
+            "type": "object",
+            "description": "Simplified field definition (API uses ExTemplatFlowElement)."
+          }
+        },
+        "users": {
+          "type": "array",
+          "description": "Template users (ExTemplateUser).",
+          "items": {
+            "type": "object"
+          }
+        },
+        "sendMethodType": {
+          "type": "string",
+          "description": "SendMethodType enum (QueuedFlow, DirectFlow, etc.)."
+        },
+        "templateType": {
+          "type": "string",
+          "description": "TemplateType enum: Standard, AnonymousEnable, AnonymousDisable."
+        },
+        "captchaDisabled": {
+          "type": "boolean"
+        },
+        "preliminaryText": {
+          "type": "string"
+        },
+        "signFlowDescriptionMessage": {
+          "type": "string"
+        },
+        "isAutomaticRemainder": {
+          "type": "boolean"
+        },
+        "dayesForAutomaticRemainder": {
+          "type": "integer"
+        },
+        "isSendApprovalMailToAllSigners": {
+          "type": "boolean"
+        },
+        "recipients": {
+          "type": "array",
+          "description": "All CC users of the flow created from this template.",
+          "items": {
+            "$ref": "#/types/ParticipantKey"
+          }
+        },
+        "disableSBS": {
+          "type": "boolean",
+          "description": "Disable/Enable side-by-side mode for created flows."
+        },
+        "flowTwoFactorEnabled": {
+          "type": "boolean"
+        },
+        "flowExpirationDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "imagesList": {
+          "type": "object",
+          "description": "Dictionary of images for elements of type Image (key: image id, value: data URL string).",
+          "additionalProperties": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "senderNotificationMailsToSend": {
+          "type": "array",
+          "description": "NotificationMails enum values.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "senderKey": {
+          "$ref": "#/types/ParticipantKey"
+        },
+        "templateDocument": {
+          "$ref": "#/types/DataContent"
+        }
+      },
+      "required": [ "templateName", "senderKey", "templateDocument" ]
+    },
+    "GetDocumentInfoRquest": {
+      "description": "Request object for /ex/document/info/base64.",
+      "type": "object",
+      "properties": {
+        "base64DocumentFile": {
+          "type": "string",
+          "description": "The document as a base64 string."
+        },
+        "documentFileName": {
+          "type": "string",
+          "description": "The file name of the document."
+        }
+      },
+      "required": [ "base64DocumentFile", "documentFileName" ]
+    },
+    "SearchInDocumentBase64Request": {
+      "description": "Request object for /ex/document/search/base64.",
+      "type": "object",
+      "properties": {
+        "base64DocumentFile": {
+          "type": "string"
+        },
+        "searchText": {
+          "type": "string",
+          "description": "Text to search in the document."
+        }
+      },
+      "required": [ "base64DocumentFile", "searchText" ]
+    },
+    "SearchInDocumentRequest": {
+      "description": "Request object for /ex/document/search.",
+      "type": "object",
+      "properties": {
+        "searchText": {
+          "type": "string",
+          "description": "Text to search in the document."
+        }
+      },
+      "required": [ "searchText" ]
+    }
+  }
 }

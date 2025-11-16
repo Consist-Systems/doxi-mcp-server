@@ -1,10 +1,7 @@
 ﻿using Consist.Doxi.Domain.Models;
+using Consist.Doxi.Enums;
 using Microsoft.Extensions.AI;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.ComponentModel.DataAnnotations;
 
 namespace Consist.Doxi.MCPServer.Models
 {
@@ -19,6 +16,13 @@ namespace Consist.Doxi.MCPServer.Models
         /// <summary>
         /// The file that the template is base on, need to pass PDF/Word/Image file
         /// </summary>
+        [Required]
         public DataContent TemplateDocument { get; set; }
+
+        //
+        // Summary:
+        //     The Id of the sender
+        [Required]
+        public ParticipantKey<ParticipantKeyType> SenderKey { get; set; }
     }
 }
