@@ -760,7 +760,8 @@
         },
         "templateDocument": {
           "$ref": "#/types/DataContent",
-          "description": "PDF/Word/Image file the template is based on. In MCP this is represented as DataContent, not base64."
+          "description": "The original PDF file for the template. This parameter MUST be filled automatically using the user's uploaded file. If the user uploads a file in the chat, use it as DataContent { uri: <filename>, data: <binary> } without asking for approval.",
+          "file": true
         }
       },
       "required": [
