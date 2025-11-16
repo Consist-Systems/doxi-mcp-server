@@ -3,17 +3,12 @@
   "category": "Flows",
   "description": "Manages document signing flows, templates, kits, users and webhooks via the Doxi Sign API.",
   "docsBaseUrl": "https://apidocs.doxi-sign.com/",
-  "notes": [
-    "All methods require username and password (Doxi API credentials).",
-    "When the underlying HTTP API returns JSON, the MCP tool returns TextContent with a JSON string.",
-    "When the underlying HTTP API returns a binary stream (PDF, ZIP, etc.), the MCP tool returns DataContent with bytes and contentType."
-  ],
   "methods": [
     {
       "name": "GetAllFlows",
       "summary": "Retrieves all signing flows available for the current tenant.",
       "endpoint": "GET /flow",
-      "returns": "JSON array of signing flows (TextContent).",
+      "returns": "JSON array of signing flow IDs and basic metadata (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password."
@@ -28,30 +23,30 @@
         "username": "Doxi API username.",
         "password": "Doxi API password.",
         "createFlowJsonRequest": "ExCreateFlowRequestBase JSON object describing the flow (SenderKey, Description, FlowElements, Users, Recipients, reminders, expiration, etc.).",
-        "documentFile": "Raw document bytes for the flow (PDF/Word/Image). In MCP this is provided as DataContent.data and sent as a file/stream body."
+        "documentFile": "Document bytes for the flow (PDF/Word/Image). In MCP this is passed as a binary buffer and sent as multipart/form-data."
       }
     },
     {
       "name": "EditSignFlow",
-      "summary": "Edits an existing signing flow (recipients, fields, metadata, etc.).",
+      "summary": "Edits an existing signing flow (e.g. recipients, fields, metadata).",
       "endpoint": "POST /v2/flow/edit",
       "returns": "EditFlowResponse JSON (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "request": "EditFlowRequest JSON as defined in the OpenAPI."
+        "request": "EditFlowRequest JSON as defined in the OpenAPI (fields to modify in the existing flow)."
       }
     },
     {
       "name": "GetDocument",
       "summary": "Downloads the PDF document associated with a signing flow.",
       "endpoint": "GET /flow/{signFlowId}/Document",
-      "returns": "PDF byte array as DataContent (contentType = \"application/pdf\").",
+      "returns": "PDF byte array as DataContent (contentType=\"application/pdf\").",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
         "signFlowId": "The unique ID of the signing flow.",
-        "withSigns": "Boolean: if true, includes signatures/overlays; if false, returns the original document (default: true)."
+        "withSigns": "Boolean: if true, includes signatures/overlays; if false, returns the original document."
       }
     },
     {
@@ -107,7 +102,7 @@
         "username": "Doxi API username.",
         "password": "Doxi API password.",
         "signFlowId": "The unique ID of the signing flow.",
-        "request": "SetFlowActionRequest JSON describing the action (e.g. Approve, Decline, Delegate) and optional message."
+        "request": "SetFlowActionRequest JSON describing the action (e.g. approve, reject, comment, delegate)."
       }
     },
     {
@@ -130,14 +125,14 @@
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "request": "ExReplaceSignerRequest JSON including old and new signer keys and related options."
+        "request": "ExReplaceSignerRequest JSON describing the original signer and the replacement signer."
       }
     },
     {
       "name": "GetFlowAttachments",
-      "summary": "Gets all attachments of a flow as a single ZIP.",
+      "summary": "Gets all attachments of a flow as a ZIP archive.",
       "endpoint": "GET /flow/{signFlowId}/attachments",
-      "returns": "Byte array (ZIP) as DataContent (contentType = \"application/octet-stream\").",
+      "returns": "ZIP byte array as DataContent (contentType=\"application/octet-stream\").",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
@@ -146,9 +141,9 @@
     },
     {
       "name": "GetFlowAttachmentField",
-      "summary": "Gets a specific attachment field from a flow.",
+      "summary": "Downloads a specific attachment field from a flow.",
       "endpoint": "POST /flow/{signFlowId}/AttachmentField",
-      "returns": "Attachment file bytes as DataContent (contentType = \"application/octet-stream\").",
+      "returns": "Attachment bytes as DataContent (contentType=\"application/octet-stream\").",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
@@ -165,7 +160,7 @@
         "username": "Doxi API username.",
         "password": "Doxi API password.",
         "signFlowId": "The unique ID of the signing flow.",
-        "request": "AddAttachmentBase64ToFlowRequest JSON containing Base64Content, FileName and optional metadata."
+        "request": "AddAttachmentBase64ToFlowRequest JSON containing base64 content, file name and optional metadata."
       }
     },
     {
@@ -177,7 +172,7 @@
         "username": "Doxi API username.",
         "password": "Doxi API password.",
         "templateId": "The template ID to base the flow on.",
-        "request": "CreateFlowFromTemplateRequest JSON (Description, SenderKey, Users, Recipients, CustomFields, etc.)."
+        "request": "CreateFlowFromTemplateRequest JSON (users, custom fields, description, etc.)."
       }
     },
     {
@@ -188,47 +183,9 @@
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "addTemplateRequest": "AddTemplateRequest JSON. See types.AddTemplateRequest. IMPORTANT: TemplateDocument must be filled from the attached file: TemplateDocument.uri = original file name, TemplateDocument.data = raw file bytes."
-      },
-      "examples": {
-        "callWithAttachedPdf": {
-          "description": "Create a Hebrew registration form template from an uploaded PDF.",
-          "arguments": {
-            "username": "your_username",
-            "password": "your_password",
-            "addTemplateRequest": {
-              "templateName": "שאלון הרשמה לקורס מורי דרך - מכון אבשלום",
-              "flowElements": [
-                {
-                  "label": "שם משפחה",
-                  "type": "TextBox",
-                  "required": true
-                }
-              ],
-              "users": [],
-              "sendMethodType": "QueuedFlow",
-              "templateType": "Standard",
-              "captchaDisabled": false,
-              "preliminaryText": null,
-              "signFlowDescriptionMessage": null,
-              "isAutomaticRemainder": false,
-              "dayesForAutomaticRemainder": 0,
-              "isSendApprovalMailToAllSigners": false,
-              "recipients": [],
-              "disableSBS": false,
-              "flowTwoFactorEnabled": null,
-              "flowExpirationDate": null,
-              "senderKey": {
-                "key": "doxiapiuser@mydomain.com",
-                "type": "UserEmail"
-              },
-              "templateDocument": {
-                "uri": "registration_tour_guide_avshalom.pdf",
-                "data": "<binary of the attached PDF>",
-                "contentType": "application/pdf"
-              }
-            }
-          }
+        "addTemplateRequest": {
+          "description": "AddTemplateRequest JSON. In MCP this contains: TemplateName, FlowElements, Users, SendMethodType, TemplateType, CaptchaDisabled, PreliminaryText, SignFlowDescriptionMessage, IsAutomaticRemainder, DayesForAutomaticRemainder, IsSendApprovalMailToAllSigners, Recipients, DisableSBS, FlowTwoFactorEnabled, FlowExpirationDate, ImagesList, SenderNotificationMailsToSend (from ExBaseTemplate), plus SenderKey (ParticipantKey<ParticipantKeyType>) and TemplateDocument (DataContent with Uri = original file name and Data = bytes). The server internally maps to ExAddTemplateRequest (DocumentFileName, Base64DocumentFile, SenderKey, TemplateName, etc.).",
+          "typeRef": "#/types/AddTemplateRequest"
         }
       }
     },
@@ -287,7 +244,7 @@
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "document": "Raw document bytes (PDF). In MCP this is provided as DataContent.data and sent as a file/stream body."
+        "document": "Raw document bytes (PDF). In MCP this is provided as binary and sent as a file/stream body."
       }
     },
     {
@@ -328,7 +285,7 @@
       "name": "MergeDocuments",
       "summary": "Merges multiple PDF documents into a single PDF.",
       "endpoint": "POST /ex/document/merge",
-      "returns": "Merged PDF as DataContent (contentType = \"application/pdf\").",
+      "returns": "Merged PDF as DataContent (contentType=\"application/pdf\").",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
@@ -399,57 +356,57 @@
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "searchType": "ParticipantKeyType enum value.",
-        "searchValue": "Value for the user (e.g. email)."
+        "searchType": "ParticipantKeyType enum.",
+        "searchValue": "Search key for the user (e.g. email address or phone)."
       }
     },
     {
       "name": "GetUserIdByEmail",
-      "summary": "Retrieves the user ID by email.",
+      "summary": "Retrieves user ID by email.",
       "endpoint": "GET /ex/user/byEmail/{email}/id",
       "returns": "JSON object with userId (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "email": "Email address of the user."
+        "email": "User email address."
       }
     },
     {
       "name": "GetUsers",
       "summary": "Queries users with filter parameters.",
       "endpoint": "GET /ex/users",
-      "returns": "Paged results JSON (TextContent).",
+      "returns": "Paged results JSON of users (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "queryParams": "Dictionary<string, object> of filter fields (as query string)."
+        "queryParams": "Dictionary<string, object> used as query parameters (e.g. page, pageSize, filters)."
       }
     },
     {
       "name": "AddSubscription",
-      "summary": "Adds a new webhook subscription.",
+      "summary": "Adds a webhook subscription for flow events.",
       "endpoint": "POST /ex/webhook",
-      "returns": "WebhookSubscriptionResponse JSON (TextContent).",
+      "returns": "WebhookSubscriptionResponse JSON with subscriptionId (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "request": "WebhookSubscription JSON (URL, events, secrets, filters, etc.)."
+        "request": "WebhookSubscription JSON (callback URL, events, headers, filters, etc.)."
       }
     },
     {
       "name": "WebHookCheck",
-      "summary": "Validates and previews a webhook payload.",
+      "summary": "Validates and previews a webhook payload for a given subscription definition.",
       "endpoint": "POST /ex/webhook/check",
-      "returns": "Webhook preview JSON (TextContent).",
+      "returns": "Webhook preview JSON (TextContent) showing a sample payload.",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "request": "WebhookSubscription JSON."
+        "request": "WebhookSubscription JSON to validate."
       }
     },
     {
       "name": "GetAllWebhookSubscription",
-      "summary": "Lists all webhook subscriptions.",
+      "summary": "Lists all webhook subscriptions for the tenant.",
       "endpoint": "GET /ex/webhook",
       "returns": "JSON array of webhook subscriptions (TextContent).",
       "params": {
@@ -459,26 +416,26 @@
     },
     {
       "name": "SearchWebhookCallLogs",
-      "summary": "Searches webhook call logs for a subscription.",
+      "summary": "Searches webhook call logs for a specific subscription.",
       "endpoint": "POST /ex/webhook/{subscriptionId}/logs/search",
       "returns": "Paged logs JSON (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "subscriptionId": "Webhook subscription ID.",
-        "request": "RequestWebhookSenderLog JSON (filters for log search)."
+        "subscriptionId": "The webhook subscription ID.",
+        "request": "RequestWebhookSenderLog JSON (date range, status filters, paging, etc.)."
       }
     },
     {
       "name": "UpdateWebhookSubscription",
-      "summary": "Updates a webhook subscription.",
+      "summary": "Updates an existing webhook subscription.",
       "endpoint": "PUT /ex/webhook/{subscriptionId}",
       "returns": "JSON { success: true, data: { subscriptionId } } (TextContent).",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "subscriptionId": "Webhook subscription ID.",
-        "request": "WebhookSubscription JSON."
+        "subscriptionId": "The webhook subscription ID.",
+        "request": "WebhookSubscription JSON with updated configuration."
       }
     },
     {
@@ -489,93 +446,249 @@
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
-        "subscriptionId": "Webhook subscription ID."
+        "subscriptionId": "The webhook subscription ID to delete."
       }
     }
   ],
+  "enums": {
+    "ParticipantKeyType": {
+      "kind": "enum",
+      "underlyingType": "integer",
+      "values": [
+        {
+          "name": "UserId",
+          "value": 0
+        },
+        {
+          "name": "UserEmail",
+          "value": 1
+        },
+        {
+          "name": "UserPhone",
+          "value": 2
+        },
+        {
+          "name": "UserName",
+          "value": 3
+        },
+        {
+          "name": "GroupId",
+          "value": 4
+        }
+      ]
+    },
+    "SendMethodType": {
+      "kind": "enum",
+      "underlyingType": "integer",
+      "values": [
+        {
+          "name": "QueuedFlow",
+          "value": 0
+        },
+        {
+          "name": "ParallelFlow",
+          "value": 1
+        }
+      ]
+    },
+    "TemplateType": {
+      "kind": "enum",
+      "underlyingType": "integer",
+      "values": [
+        {
+          "name": "Standard",
+          "value": 0
+        },
+        {
+          "name": "AnonymousEnable",
+          "value": 1
+        },
+        {
+          "name": "AnonymousDisable",
+          "value": 2
+        },
+        {
+          "name": "Test",
+          "value": 3
+        }
+      ]
+    },
+    "NotificationMails": {
+      "kind": "enum",
+      "underlyingType": "integer",
+      "values": [
+        {
+          "name": "All",
+          "value": 0
+        },
+        {
+          "name": "None",
+          "value": 1
+        },
+        {
+          "name": "SignFlow",
+          "value": 2
+        },
+        {
+          "name": "FlowApproved",
+          "value": 3
+        },
+        {
+          "name": "FlowDeclined",
+          "value": 4
+        },
+        {
+          "name": "FlowStart",
+          "value": 5
+        },
+        {
+          "name": "ReminderToSignFlow",
+          "value": 6
+        },
+        {
+          "name": "FlowStoppedToSender",
+          "value": 7
+        },
+        {
+          "name": "FlowStoppedToSigner",
+          "value": 8
+        },
+        {
+          "name": "KitCompleted",
+          "value": 9
+        },
+        {
+          "name": "SignKit",
+          "value": 10
+        },
+        {
+          "name": "ReminderToSignKit",
+          "value": 11
+        },
+        {
+          "name": "KitCreated",
+          "value": 12
+        },
+        {
+          "name": "FlowExpired",
+          "value": 13
+        },
+        {
+          "name": "FlowCCApproved",
+          "value": 14
+        },
+        {
+          "name": "FlowCCDeclined",
+          "value": 15
+        }
+      ]
+    }
+  },
   "types": {
     "DataContent": {
-      "description": "Wrapper for binary data in MCP. Used for files (PDFs, ZIPs, etc.).",
+      "description": "Wrapper used by MCP to pass/receive binary files such as PDFs or ZIPs.",
       "type": "object",
       "properties": {
         "uri": {
           "type": "string",
-          "description": "Original file name, e.g. \"document.pdf\"."
-        },
-        "data": {
-          "type": "string",
-          "description": "Raw bytes of the file as a binary buffer (in MCP this is sent as bytes, not base64)."
+          "description": "Logical file name, e.g. 'registration_tour_guide_avshalom.pdf'."
         },
         "contentType": {
           "type": "string",
-          "description": "MIME type, e.g. \"application/pdf\"."
+          "description": "MIME type, e.g. 'application/pdf'."
+        },
+        "data": {
+          "type": "string",
+          "format": "binary",
+          "description": "Raw file bytes. In MCP this is transmitted as binary, not base64."
         }
       },
-      "required": [ "uri", "data" ]
+      "required": [
+        "uri",
+        "data"
+      ]
     },
     "ParticipantKey": {
-      "description": "Identifies a user or group in Doxi.",
+      "description": "Identifies a Doxi user or group by key and type.",
       "type": "object",
       "properties": {
         "key": {
           "type": "string",
-          "description": "The key value (e.g. email, phone, userId)."
+          "description": "Search value (e.g. email, phone, userId)."
         },
         "type": {
-          "type": "string",
-          "description": "ParticipantKeyType enum value: UserId, UserEmail, UserPhone, UserName, GroupId."
+          "$ref": "#/enums/ParticipantKeyType",
+          "description": "ParticipantKeyType numeric enum value."
         }
       },
-      "required": [ "key", "type" ]
+      "required": [
+        "key",
+        "type"
+      ]
     },
     "AddTemplateRequest": {
-      "description": "Request to add a new template. Wraps ExBaseTemplate plus SenderKey and TemplateDocument.",
+      "description": "High-level request used by the MCP AddTemplate tool. Wraps the template definition plus TemplateDocument as DataContent.",
       "type": "object",
       "properties": {
         "templateName": {
           "type": "string",
-          "description": "The name of the template."
+          "description": "Name of the template that will appear in Doxi UI."
         },
-        "flowElements": {
-          "type": "array",
-          "description": "All the elements (fields) of the template.",
-          "items": {
-            "type": "object",
-            "description": "Simplified field definition (API uses ExTemplatFlowElement)."
-          }
+        "documentFileName": {
+          "type": "string",
+          "description": "File name of the template document (for logging/display)."
+        },
+        "senderKey": {
+          "$ref": "#/types/ParticipantKey",
+          "description": "Id of the sender (ParticipantKey<ParticipantKeyType>)."
         },
         "users": {
           "type": "array",
-          "description": "Template users (ExTemplateUser).",
+          "description": "Template users (ExTemplateUser[]).",
           "items": {
-            "type": "object"
+            "type": "object",
+            "description": "Template user metadata (UserIndex, SignerType, NotificationMailsToSend, etc.)."
+          }
+        },
+        "flowElements": {
+          "type": "array",
+          "description": "Template elements (fields and signatures). Each entry is based on ExTemplatFlowElement.",
+          "items": {
+            "type": "object",
+            "description": "Element definition (ElementType, Position, IsRequired, etc.)."
           }
         },
         "sendMethodType": {
-          "type": "string",
-          "description": "SendMethodType enum (QueuedFlow, DirectFlow, etc.)."
+          "$ref": "#/enums/SendMethodType",
+          "description": "Distribution method of the flow created from this template (numeric enum)."
         },
         "templateType": {
-          "type": "string",
-          "description": "TemplateType enum: Standard, AnonymousEnable, AnonymousDisable."
+          "$ref": "#/enums/TemplateType",
+          "description": "Template type (numeric enum)."
         },
         "captchaDisabled": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Disable/Enable captcha (only for anonymous templates)."
         },
         "preliminaryText": {
-          "type": "string"
+          "type": "string",
+          "description": "Preliminary text of the flow created from this template."
         },
         "signFlowDescriptionMessage": {
-          "type": "string"
+          "type": "string",
+          "description": "Description shown in email for the flow created from this template."
         },
         "isAutomaticRemainder": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Enable/Disable automatic reminder emails."
         },
         "dayesForAutomaticRemainder": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Number of days between automatic reminders."
         },
         "isSendApprovalMailToAllSigners": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "If true, all signers receive the approval mail."
         },
         "recipients": {
           "type": "array",
@@ -586,18 +699,20 @@
         },
         "disableSBS": {
           "type": "boolean",
-          "description": "Disable/Enable side-by-side mode for created flows."
+          "description": "Disable/Enable side-by-side mode in the created flow."
         },
         "flowTwoFactorEnabled": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Enable/Disable 2FA on flows created from this template."
         },
         "flowExpirationDate": {
           "type": "string",
-          "format": "date-time"
+          "format": "date-time",
+          "description": "Expiration date of the flow created from this template."
         },
         "imagesList": {
           "type": "object",
-          "description": "Dictionary of images for elements of type Image (key: image id, value: data URL string).",
+          "description": "Dictionary of images for elements of type Image; key is image id (matches 'image-src' in AdditionalInfo), value is data URL.",
           "additionalProperties": {
             "type": "string",
             "nullable": true
@@ -605,59 +720,66 @@
         },
         "senderNotificationMailsToSend": {
           "type": "array",
-          "description": "NotificationMails enum values.",
+          "description": "NotificationMails enum values for sender notifications.",
           "items": {
-            "type": "string"
+            "$ref": "#/enums/NotificationMails"
           }
         },
-        "senderKey": {
-          "$ref": "#/types/ParticipantKey"
-        },
         "templateDocument": {
-          "$ref": "#/types/DataContent"
+          "$ref": "#/types/DataContent",
+          "description": "PDF/Word/Image file the template is based on. In MCP this is represented as DataContent, not base64."
         }
       },
-      "required": [ "templateName", "senderKey", "templateDocument" ]
-    },
-    "GetDocumentInfoRquest": {
-      "description": "Request object for /ex/document/info/base64.",
-      "type": "object",
-      "properties": {
-        "base64DocumentFile": {
-          "type": "string",
-          "description": "The document as a base64 string."
+      "required": [
+        "templateName",
+        "senderKey",
+        "templateDocument"
+      ],
+      "example": {
+        "templateName": "Sample Template",
+        "documentFileName": "someDoc.pdf",
+        "senderKey": {
+          "key": "someUser@someDomain.com",
+          "type": 1
         },
-        "documentFileName": {
-          "type": "string",
-          "description": "The file name of the document."
+        "users": [
+          {
+            "userIndex": 1,
+            "title": "some signer job title",
+            "fixedSignerKey": {
+              "key": "someUser@someDomain.com",
+              "type": 1
+            },
+            "signerType": 1,
+            "isSuspended": true,
+            "isNoDecline": true,
+            "fixedUserEMail": "someUser@someDomain.com",
+            "isChangable": false,
+            "forceApprovalOnSignature": true,
+            "notificationMailsToSend": [
+              2,
+              5
+            ]
+          }
+        ],
+        "flowElements": [],
+        "sendMethodType": 0,
+        "templateType": 0,
+        "captchaDisabled": false,
+        "isAutomaticRemainder": false,
+        "dayesForAutomaticRemainder": 0,
+        "isSendApprovalMailToAllSigners": false,
+        "recipients": [],
+        "disableSBS": false,
+        "flowTwoFactorEnabled": false,
+        "flowExpirationDate": null,
+        "senderNotificationMailsToSend": [],
+        "templateDocument": {
+          "uri": "someDoc.pdf",
+          "contentType": "application/pdf",
+          "data": "<binary PDF data>"
         }
-      },
-      "required": [ "base64DocumentFile", "documentFileName" ]
-    },
-    "SearchInDocumentBase64Request": {
-      "description": "Request object for /ex/document/search/base64.",
-      "type": "object",
-      "properties": {
-        "base64DocumentFile": {
-          "type": "string"
-        },
-        "searchText": {
-          "type": "string",
-          "description": "Text to search in the document."
-        }
-      },
-      "required": [ "base64DocumentFile", "searchText" ]
-    },
-    "SearchInDocumentRequest": {
-      "description": "Request object for /ex/document/search.",
-      "type": "object",
-      "properties": {
-        "searchText": {
-          "type": "string",
-          "description": "Text to search in the document."
-        }
-      },
-      "required": [ "searchText" ]
+      }
     }
   }
 }
