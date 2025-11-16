@@ -780,6 +780,464 @@
           "data": "<binary PDF data>"
         }
       }
+    },
+    "ExCreateFlowRequestBase": {
+      "description": "Request body for creating a signing flow (used by AddSignFlow). Mirrors the ExCreateFlowRequestBase model from the Doxi API.",
+      "type": "object",
+      "properties": {
+        "senderKey": {
+          "$ref": "#/types/ParticipantKey",
+          "description": "Sender of the flow."
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of the flow."
+        },
+        "users": {
+          "type": "array",
+          "description": "Signers/approvers participating in the flow (order, roles, notification options, etc.).",
+          "items": {
+            "type": "object",
+            "description": "User definition (index, signer type, notification options, etc.)."
+          }
+        },
+        "flowElements": {
+          "type": "array",
+          "description": "Fields and signature elements placed on the document.",
+          "items": {
+            "type": "object",
+            "description": "Element definition including type, position, page, required flag, etc."
+          }
+        },
+        "recipients": {
+          "type": "array",
+          "description": "CC recipients that receive notifications about the flow.",
+          "items": {
+            "$ref": "#/types/ParticipantKey"
+          }
+        },
+        "expirationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Date/time when the flow expires."
+        },
+        "customFields": {
+          "type": "object",
+          "description": "Optional custom metadata fields attached to the flow.",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "EditFlowRequest": {
+      "description": "Request body used to edit an existing signing flow (EditSignFlow).",
+      "type": "object",
+      "properties": {
+        "signFlowId": {
+          "type": "string",
+          "description": "ID of the flow to edit."
+        },
+        "description": {
+          "type": "string",
+          "description": "New description for the flow (optional)."
+        },
+        "users": {
+          "type": "array",
+          "description": "Updated users/signers configuration.",
+          "items": {
+            "type": "object"
+          }
+        },
+        "flowElements": {
+          "type": "array",
+          "description": "Updated field/signature elements.",
+          "items": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "GetFlowsByFilterRequest": {
+      "description": "Filter object for searching flows (SearchFlow).",
+      "type": "object",
+      "properties": {
+        "signer": {
+          "type": "string",
+          "description": "Signer identifier (email / user id / phone, depending on configuration)."
+        },
+        "sender": {
+          "type": "string",
+          "description": "Sender identifier."
+        },
+        "fromDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Start of date range filter."
+        },
+        "toDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "End of date range filter."
+        },
+        "description": {
+          "type": "string",
+          "description": "Free-text search on the flow description."
+        },
+        "kitId": {
+          "type": "string",
+          "description": "Filter flows that were created from a specific kit."
+        },
+        "customFields": {
+          "type": "object",
+          "description": "Key/value filters on custom fields.",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "GetFlowsStatusRequest": {
+      "description": "Request body for GetFlowsStatus containing the list of flow IDs.",
+      "type": "object",
+      "properties": {
+        "signFlowIds": {
+          "type": "array",
+          "description": "Array of flow IDs whose status should be retrieved.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "signFlowIds"
+      ]
+    },
+    "SetFlowActionRequest": {
+      "description": "Request body describing an action to apply to a flow (SetFlowAction).",
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "description": "Action to apply (e.g. approve, reject, delegate)."
+        },
+        "comment": {
+          "type": "string",
+          "description": "Optional comment for the action."
+        },
+        "delegateTo": {
+          "type": "string",
+          "description": "If action is delegate, identifier of the user to delegate to."
+        }
+      },
+      "required": [
+        "action"
+      ]
+    },
+    "ExSetSignFlowRequest": {
+      "description": "Request body used to update or add signatures to a flow (SetSignatures).",
+      "type": "object",
+      "properties": {
+        "signFlowId": {
+          "type": "string",
+          "description": "ID of the flow (may be redundant with the path parameter)."
+        },
+        "signatures": {
+          "type": "array",
+          "description": "Collection of signature definitions to apply.",
+          "items": {
+            "type": "object",
+            "description": "Individual signature definition (user index, element id, value, etc.)."
+          }
+        }
+      }
+    },
+    "ExReplaceSignerRequest": {
+      "description": "Request body telling the API to replace one signer with another (ReplaceSigner).",
+      "type": "object",
+      "properties": {
+        "signFlowId": {
+          "type": "string",
+          "description": "ID of the flow whose signer should be replaced."
+        },
+        "originalSigner": {
+          "type": "string",
+          "description": "Identifier of the signer to replace."
+        },
+        "replacementSigner": {
+          "type": "string",
+          "description": "Identifier of the new signer."
+        }
+      }
+    },
+    "GetFlowAttachmentFieldRequest": {
+      "description": "Request body for GetFlowAttachmentField which identifies a specific attachment field.",
+      "type": "object",
+      "properties": {
+        "fieldId": {
+          "type": "string",
+          "description": "Identifier of the attachment field to download."
+        }
+      },
+      "required": [
+        "fieldId"
+      ]
+    },
+    "AddAttachmentBase64ToFlowRequest": {
+      "description": "Request body for adding an attachment encoded as base64 to an existing flow.",
+      "type": "object",
+      "properties": {
+        "base64DocumentFile": {
+          "type": "string",
+          "description": "Base64 encoded file content."
+        },
+        "documentFileName": {
+          "type": "string",
+          "description": "File name of the attachment."
+        },
+        "contentType": {
+          "type": "string",
+          "description": "MIME type of the attachment."
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Optional custom metadata to associate with the attachment.",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "base64DocumentFile",
+        "documentFileName"
+      ]
+    },
+    "CreateFlowFromTemplateRequest": {
+      "description": "Request body for creating a new flow from an existing template.",
+      "type": "object",
+      "properties": {
+        "users": {
+          "type": "array",
+          "description": "Users/signers participating in the created flow.",
+          "items": {
+            "type": "object"
+          }
+        },
+        "recipients": {
+          "type": "array",
+          "description": "CC recipients for the created flow.",
+          "items": {
+            "$ref": "#/types/ParticipantKey"
+          }
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the created flow."
+        },
+        "customFields": {
+          "type": "object",
+          "description": "Custom fields to populate in the flow.",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "ExUpdateTemplateRequest": {
+      "description": "Request body used to update an existing template (UpdateTemplate). Structure is similar to AddTemplateRequest without TemplateDocument.",
+      "type": "object",
+      "properties": {
+        "templateName": {
+          "type": "string",
+          "description": "New template name."
+        },
+        "users": {
+          "type": "array",
+          "description": "Updated template users.",
+          "items": {
+            "type": "object"
+          }
+        },
+        "flowElements": {
+          "type": "array",
+          "description": "Updated template elements.",
+          "items": {
+            "type": "object"
+          }
+        },
+        "sendMethodType": {
+          "$ref": "#/enums/SendMethodType",
+          "description": "Numeric enum indicating the send method."
+        },
+        "templateType": {
+          "$ref": "#/enums/TemplateType",
+          "description": "Numeric enum indicating the template type."
+        }
+      }
+    },
+    "DeleteTemplateRequest": {
+      "description": "Additional options for deleting a template (DeleteUserTemplate).",
+      "type": "object",
+      "properties": {
+        "deleteDocuments": {
+          "type": "boolean",
+          "description": "If true, associated documents are also deleted (if supported by API)."
+        }
+      }
+    },
+    "GetDocumentInfoRquest": {
+      "description": "Request body for DocumentInfoBase64 (typo preserved to match API).",
+      "type": "object",
+      "properties": {
+        "base64DocumentFile": {
+          "type": "string",
+          "description": "Base64 encoded document content."
+        },
+        "documentFileName": {
+          "type": "string",
+          "description": "Logical document file name."
+        }
+      },
+      "required": [
+        "base64DocumentFile",
+        "documentFileName"
+      ]
+    },
+    "SearchInDocumentBase64Request": {
+      "description": "Request body for searching text or patterns in a base64-encoded document.",
+      "type": "object",
+      "properties": {
+        "base64DocumentFile": {
+          "type": "string",
+          "description": "Base64 encoded document content."
+        },
+        "searchText": {
+          "type": "string",
+          "description": "Text or pattern to search for."
+        }
+      },
+      "required": [
+        "base64DocumentFile",
+        "searchText"
+      ]
+    },
+    "SearchInDocumentRequest": {
+      "description": "Options used when searching in an uploaded document (SearchInDocument).",
+      "type": "object",
+      "properties": {
+        "searchText": {
+          "type": "string",
+          "description": "Text or pattern to search for."
+        }
+      },
+      "required": [
+        "searchText"
+      ]
+    },
+    "ExAddKitRequest": {
+      "description": "Request body for creating a new kit (AddKit).",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Kit name."
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional description of what the kit contains."
+        },
+        "flows": {
+          "type": "array",
+          "description": "Definitions of flows/templates included in the kit.",
+          "items": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "ExUpdateKitRequest": {
+      "description": "Request body for updating an existing kit (UpdateKit).",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Updated kit name."
+        },
+        "description": {
+          "type": "string",
+          "description": "Updated kit description."
+        },
+        "flows": {
+          "type": "array",
+          "description": "Updated kit flows/templates configuration.",
+          "items": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "WebhookSubscription": {
+      "description": "Webhook subscription definition used by AddSubscription, WebHookCheck and UpdateWebhookSubscription.",
+      "type": "object",
+      "properties": {
+        "callbackUrl": {
+          "type": "string",
+          "description": "HTTPS endpoint that will receive webhook calls."
+        },
+        "events": {
+          "type": "array",
+          "description": "List of event types (as strings) that should trigger the webhook.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "headers": {
+          "type": "object",
+          "description": "Optional HTTP headers to send with each webhook call.",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "secret": {
+          "type": "string",
+          "description": "Optional secret used to sign webhook payloads."
+        },
+        "filters": {
+          "type": "object",
+          "description": "Optional filters that limit which flows trigger the webhook.",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "RequestWebhookSenderLog": {
+      "description": "Search criteria for webhook call logs (SearchWebhookCallLogs).",
+      "type": "object",
+      "properties": {
+        "fromDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Start of the log search date range."
+        },
+        "toDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "End of the log search date range."
+        },
+        "status": {
+          "type": "string",
+          "description": "Optional delivery status filter (e.g. Success, Failed)."
+        },
+        "page": {
+          "type": "integer",
+          "description": "Page index for paging."
+        },
+        "pageSize": {
+          "type": "integer",
+          "description": "Number of items per page."
+        }
+      }
     }
   }
 }
