@@ -1,7 +1,8 @@
 ﻿using Consist.Doxi.Domain.Models;
 using Consist.Doxi.Domain.Models.ExternalAPI;
-using Consist.MCPServer.DoxiAPIClient;
 using Consist.Doxi.External.Models.Models.ExternalAPI.Webhook;
+using Consist.Doxi.MCPServer.Domain.Models;
+using Consist.MCPServer.DoxiAPIClient;
 using Doxi.APIClient;
 using Doxi.APIClient.Models;
 
@@ -86,9 +87,6 @@ namespace Consist.Doxi.MCPServer.Domain
 
         public async Task<CreateFlowFromTemplateResponse> CreateFlowFromTemplate(string username, string password, string templateId, CreateFlowFromTemplateRequest request)
             => await GetDoxiClient(username, password).CreateFlowFromTemplate(templateId, request);
-
-        public async Task<string> AddTemplate(string username, string password, ExAddTemplateRequest request)
-            => await GetDoxiClient(username, password).AddTemplate(request);
 
         public async Task UpdateTemplate(string username, string password, string templateId, ExUpdateTemplateRequest request)
             => await GetDoxiClient(username, password).UpdateTemplate(templateId, request);
@@ -184,5 +182,9 @@ namespace Consist.Doxi.MCPServer.Domain
 
         public async Task DeleteSubscription(string username, string password, string subscriptionId)
             => await GetDoxiClient(username, password).DeleteSubscription(subscriptionId);
+
+        public async Task<AddTemplateResponse> AddTemplate(string username, string password, ExAddTemplateRequest addTemplateRequest, string uri, ReadOnlyMemory<byte> data)
+            => new AddTemplateResponse{TemplateId = await GetDoxiClient(username, password).AddTemplate(addTemplateRequest)};
+        
     }
 }

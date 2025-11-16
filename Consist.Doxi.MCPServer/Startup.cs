@@ -1,8 +1,9 @@
-﻿using Consist.ProjectName.Filters;
+﻿using Consist.Doxi.MCPServer.Domain;
+using Consist.Doxi.MCPServer.Mapper;
+using Consist.MCPServer.DoxiAPIClient;
+using Consist.ProjectName.Filters;
 using NLog;
 using NLog.Web;
-using Consist.MCPServer.DoxiAPIClient;
-using Consist.Doxi.MCPServer.Domain;
 
 namespace Consist.ProjectName
 {
@@ -47,6 +48,10 @@ namespace Consist.ProjectName
 
             services.AddHttpClient();
 
+            services.AddAutoMapper(cfg =>
+            {
+                cfg.AddProfile<MapperRegistration>();
+            });
 
             services.AddServiceDomain()
             .AddDoxiAPIClient(options =>

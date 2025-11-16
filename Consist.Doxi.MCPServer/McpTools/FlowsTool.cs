@@ -1,8 +1,10 @@
-﻿using Consist.Doxi.Domain.Models;
+﻿using AutoMapper;
+using Consist.Doxi.Domain.Models;
 using Consist.Doxi.Domain.Models.ExternalAPI;
 using Consist.Doxi.Enums;
 using Consist.Doxi.External.Models.Models.ExternalAPI.Webhook;
 using Consist.Doxi.MCPServer.Domain;
+using Consist.Doxi.MCPServer.Models;
 using Doxi.APIClient.Models;
 using Microsoft.Extensions.AI;
 using ModelContextProtocol.Server;
@@ -15,10 +17,15 @@ namespace Consist.ProjectName.McpTools
     public class FlowsTool
     {
         private readonly DoxiAPIWrapper _doxiAPIWrapper;
+        private readonly IServiceProvider _serviceProvider;
 
-        public FlowsTool(DoxiAPIWrapper doxiAPIWrapper)
+        IMapper Mapper => _serviceProvider.GetRequiredService<IMapper>();
+
+        public FlowsTool(DoxiAPIWrapper doxiAPIWrapper,
+            IServiceProvider serviceProvider)
         {
             _doxiAPIWrapper = doxiAPIWrapper;
+            _serviceProvider = serviceProvider;
         }
 
         private static string ToJson(object obj)
@@ -137,9 +144,15 @@ namespace Consist.ProjectName.McpTools
         }
 
         [McpServerTool(Name = "AddTemplate"), Description("Creates a new user template (POST /ex/template).")]
-        public async Task<TextContent> AddTemplate(string username, string password, ExAddTemplateRequest request)
+        public async Task<TextContent> AddTemplate(string username, string password, AddTemplateRequest addTemplateRequest)
         {
-            var result = await _doxiAPIWrapper.AddTemplate(username, password, request);
+
+            var templateRequest = Mapper.Map<ExAddTemplateRequest>(addTemplateRequest);
+            templateRequest.DocumentFileName = addTemplateRequest.TemplateDocument.Uri;
+            templateRequest.Base64DocumentFile = Convert.ToBase64String(addTemplateRequest.TemplateDocument.Data.ToArray());
+            var result = await _doxiAPIWrapper.AddTemplate(username, password, templateRequest,
+                addTemplateRequest.TemplateDocument.Uri,
+                addTemplateRequest.TemplateDocument.Data);
             return new TextContent(ToJson(result));
         }
 
