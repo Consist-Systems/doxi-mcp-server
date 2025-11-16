@@ -91,8 +91,15 @@ namespace Consist.ProjectName
 
             app.UseEndpoints(endpoints =>
             {
-                // Map MCP endpoint with tenant in the URL: /{tenant}/mcp
                 endpoints.MapMcp("/{tenant}/mcp");
+
+                // Serve MCP metadata.json
+                endpoints.MapGet("/metadata", async context =>
+                {
+                    var json = await File.ReadAllTextAsync("McpTools/metadata.json");
+                    context.Response.ContentType = "application/json";
+                    await context.Response.WriteAsync(json);
+                });
             });
 
             _logger.LogDebug("Exit Configure");
