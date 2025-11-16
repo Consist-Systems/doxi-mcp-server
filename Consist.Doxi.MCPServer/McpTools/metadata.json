@@ -582,6 +582,40 @@
           "value": 15
         }
       ]
+    },
+    "TemplateElementType": {
+      "kind": "enum",
+      "underlyingType": "integer",
+      "values": [
+        {
+          "name": "Signature",
+          "value": 0
+        },
+        {
+          "name": "Text",
+          "value": 1
+        },
+        {
+          "name": "Checkbox",
+          "value": 2
+        },
+        {
+          "name": "Date",
+          "value": 3
+        },
+        {
+          "name": "AttachmentField",
+          "value": 4
+        },
+        {
+          "name": "Image",
+          "value": 5
+        },
+        {
+          "name": "ComboBox",
+          "value": 6
+        }
+      ]
     }
   },
   "types": {
@@ -654,8 +688,7 @@
           "type": "array",
           "description": "Template elements (fields and signatures). Each entry is based on ExTemplatFlowElement.",
           "items": {
-            "type": "object",
-            "description": "Element definition (ElementType, Position, IsRequired, etc.)."
+            "$ref": "#/types/ExTemplatFlowElement"
           }
         },
         "sendMethodType": {
@@ -778,6 +811,103 @@
           "uri": "someDoc.pdf",
           "contentType": "application/pdf",
           "data": "<binary PDF data>"
+        }
+      }
+    },
+    "Validation": {
+      "description": "Validation rule for a template element (mirrors Validation schema from the Doxi API).",
+      "type": "object",
+      "properties": {
+        "regex": {
+          "type": "string",
+          "description": "Regular expression used to validate the field value.",
+          "nullable": true
+        },
+        "errorCode": {
+          "type": "integer",
+          "description": "Numeric error code returned when validation fails.",
+          "format": "int32"
+        }
+      }
+    },
+    "StringStringKeyValuePair": {
+      "description": "Simple key/value pair of strings as defined in the Doxi API (StringStringKeyValuePair).",
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string",
+          "nullable": true
+        },
+        "value": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "ExTemplatFlowElement": {
+      "description": "Template flow element definition used in AddTemplate and UpdateTemplate (fields and signatures placed on the document). Based on ExTemplatFlowElement from the Doxi API.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Element identifier inside the template.",
+          "nullable": true
+        },
+        "name": {
+          "type": "string",
+          "description": "Optional logical name of the element.",
+          "nullable": true
+        },
+        "elementType": {
+          "$ref": "#/enums/TemplateElementType",
+          "description": "Numeric enum indicating the type of element (signature, text, checkbox, date, etc.)."
+        },
+        "userIndex": {
+          "type": "integer",
+          "description": "Index of the user/signature this element belongs to.",
+          "format": "int32"
+        },
+        "pageIndex": {
+          "type": "integer",
+          "description": "Zero-based page index on which the element is placed.",
+          "format": "int32"
+        },
+        "x": {
+          "type": "number",
+          "description": "X position (in document units) of the element on the page."
+        },
+        "y": {
+          "type": "number",
+          "description": "Y position (in document units) of the element on the page."
+        },
+        "width": {
+          "type": "number",
+          "description": "Element width (in document units)."
+        },
+        "height": {
+          "type": "number",
+          "description": "Element height (in document units)."
+        },
+        "isRequired": {
+          "type": "boolean",
+          "description": "If true, the signer must fill/complete this element."
+        },
+        "groupId": {
+          "type": "string",
+          "description": "Optional group identifier for grouping related elements (e.g. radio buttons).",
+          "nullable": true
+        },
+        "additionalInfo": {
+          "type": "array",
+          "description": "Additional element configuration as key/value pairs (depends on element type).",
+          "items": {
+            "$ref": "#/types/StringStringKeyValuePair"
+          },
+          "nullable": true
+        },
+        "validation": {
+          "$ref": "#/types/Validation",
+          "description": "Optional validation rule applied to the element value."
         }
       }
     },
