@@ -45,19 +45,6 @@ namespace Consist.ProjectName.McpTools
             return new TextContent(ToJson(result));
         }
 
-        [McpServerTool(Name = "AddSignFlow"), Description("Creates a new signing flow and uploads a document (POST /flow).")]
-        public async Task<TextContent> AddSignFlow(string username, string password, ExCreateFlowRequestBase createFlowJsonRequest, byte[] documentFile)
-        {
-            var result = await _doxiAPIWrapper.AddSignFlow(username, password, createFlowJsonRequest, documentFile);
-            return new TextContent(ToJson(result));
-        }
-
-        [McpServerTool(Name = "EditSignFlow"), Description("Edits an existing signing flow (POST /flow/edit).")]
-        public async Task<TextContent> EditSignFlow(string username, string password, EditFlowRequest request)
-        {
-            var result = await _doxiAPIWrapper.EditSignFlow(username, password, request);
-            return new TextContent(ToJson(result));
-        }
 
         [McpServerTool(Name = "GetDocument"), Description("Downloads a document from a signing flow (GET /flow/{signFlowId}/Document).")]
         public async Task<DataContent> GetDocument(string username, string password, string signFlowId, bool withSigns = true)
@@ -101,20 +88,6 @@ namespace Consist.ProjectName.McpTools
             return Success(new { signFlowId });
         }
 
-        [McpServerTool(Name = "SetSignatures"), Description("Updates or adds signatures to a flow (POST /flow/{signFlowId}/SetSignatures).")]
-        public async Task<TextContent> SetSignatures(string username, string password, string signFlowId, ExSetSignFlowRequest request)
-        {
-            await _doxiAPIWrapper.SetSignatures(username, password, signFlowId, request);
-            return Success(new { signFlowId });
-        }
-
-        [McpServerTool(Name = "ReplaceSigner"), Description("Replaces an existing signer in a signing flow (POST /flow/ReplaceSigner).")]
-        public async Task<TextContent> ReplaceSigner(string username, string password, ExReplaceSignerRequest request)
-        {
-            await _doxiAPIWrapper.ReplaceSigner(username, password, request);
-            return Success();
-        }
-
         [McpServerTool(Name = "GetFlowAttachments"), Description("Gets all attachments of a flow (GET /flow/{signFlowId}/attachments).")]
         public async Task<DataContent> GetFlowAttachments(string username, string password, string signFlowId)
         {
@@ -141,26 +114,6 @@ namespace Consist.ProjectName.McpTools
         {
             var result = await _doxiAPIWrapper.CreateFlowFromTemplate(username, password, templateId, request);
             return new TextContent(ToJson(result));
-        }
-
-        [McpServerTool(Name = "AddTemplate"), Description("Creates a new user template (POST /ex/template).")]
-        public async Task<TextContent> AddTemplate(string username, string password, AddTemplateRequest addTemplateRequest)
-        {
-
-            var templateRequest = Mapper.Map<ExAddTemplateRequest>(addTemplateRequest);
-            templateRequest.DocumentFileName = addTemplateRequest.TemplateDocument.Uri;
-            templateRequest.Base64DocumentFile = Convert.ToBase64String(addTemplateRequest.TemplateDocument.Data.ToArray());
-            var result = await _doxiAPIWrapper.AddTemplate(username, password, templateRequest,
-                addTemplateRequest.TemplateDocument.Uri,
-                addTemplateRequest.TemplateDocument.Data);
-            return new TextContent(ToJson(result));
-        }
-
-        [McpServerTool(Name = "UpdateTemplate"), Description("Updates an existing template (PUT /ex/template/{templateId}).")]
-        public async Task<TextContent> UpdateTemplate(string username, string password, string templateId, ExUpdateTemplateRequest request)
-        {
-            await _doxiAPIWrapper.UpdateTemplate(username, password, templateId, request);
-            return Success(new { templateId });
         }
 
         [McpServerTool(Name = "DeleteUserTemplate"), Description("Deletes a user template (DELETE /ex/template/{templateId}).")]
@@ -281,52 +234,6 @@ namespace Consist.ProjectName.McpTools
         {
             var result = await _doxiAPIWrapper.GetUsers(username, password, queryParams);
             return new TextContent(ToJson(result));
-        }
-
-        // =======================
-        // WEBHOOKS
-        // =======================
-
-        [McpServerTool(Name = "AddSubscription"), Description("Adds a new webhook subscription (POST /ex/webhook).")]
-        public async Task<TextContent> AddSubscription(string username, string password, WebhookSubscription request)
-        {
-            var result = await _doxiAPIWrapper.AddSubscription(username, password, request);
-            return new TextContent(ToJson(result));
-        }
-
-        [McpServerTool(Name = "WebHookCheck"), Description("Validates and previews a webhook payload (POST /ex/webhook/check).")]
-        public async Task<TextContent> WebHookCheck(string username, string password, WebhookSubscription request)
-        {
-            var result = await _doxiAPIWrapper.WebHookCheck(username, password, request);
-            return new TextContent(ToJson(result));
-        }
-
-        [McpServerTool(Name = "GetAllWebhookSubscription"), Description("Lists all webhook subscriptions (GET /ex/webhook).")]
-        public async Task<TextContent> GetAllWebhookSubscription(string username, string password)
-        {
-            var result = await _doxiAPIWrapper.GetAllWebhookSubscription(username, password);
-            return new TextContent(ToJson(result));
-        }
-
-        [McpServerTool(Name = "SearchWebhookCallLogs"), Description("Searches webhook call logs for a subscription (POST /ex/webhook/{subscriptionId}/logs/search).")]
-        public async Task<TextContent> SearchWebhookCallLogs(string username, string password, string subscriptionId, RequestWebhookSenderLog request)
-        {
-            var result = await _doxiAPIWrapper.SearchWebhookCallLogs(username, password, subscriptionId, request);
-            return new TextContent(ToJson(result));
-        }
-
-        [McpServerTool(Name = "UpdateWebhookSubscription"), Description("Updates a webhook subscription (PUT /ex/webhook/{subscriptionId}).")]
-        public async Task<TextContent> UpdateWebhookSubscription(string username, string password, string subscriptionId, WebhookSubscription request)
-        {
-            await _doxiAPIWrapper.UpdateWebhookSubscription(username, password, subscriptionId, request);
-            return Success(new { subscriptionId });
-        }
-
-        [McpServerTool(Name = "DeleteSubscription"), Description("Deletes a webhook subscription (DELETE /ex/webhook/{subscriptionId}).")]
-        public async Task<TextContent> DeleteSubscription(string username, string password, string subscriptionId)
-        {
-            await _doxiAPIWrapper.DeleteSubscription(username, password, subscriptionId);
-            return Success(new { subscriptionId });
         }
     }
 }
