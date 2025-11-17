@@ -20,6 +20,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Services\ApryseDataExtractor\ApryseDataExtractor.csproj" />
+    <ProjectReference Include="..\Services\Consist.GPTDataExtruction\Consist.GPTDataExtruction.csproj" />
     <ProjectReference Include="..\Services\Consist.MCPServer.DoxiClient\Consist.MCPServer.DoxiAPIClient.csproj" />
   </ItemGroup>
 

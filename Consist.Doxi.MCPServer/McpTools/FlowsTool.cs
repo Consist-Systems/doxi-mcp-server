@@ -235,5 +235,12 @@ namespace Consist.ProjectName.McpTools
             var result = await _doxiAPIWrapper.GetUsers(username, password, queryParams);
             return new TextContent(ToJson(result));
         }
+
+        [McpServerTool(Name = "GetUsers"), Description("Create Doxi template from PDF file, templateFile parameter is the pdf file needed to create the template. The templateInstructions parameter needed for telling Doxi all the information on creating the template")]
+        public async Task<TextContent> AddTemplate(string username, string password, DataContent templateFile,string templateInstructions)
+        {
+            var result = await _doxiAPIWrapper.AddTemplate(username, password, templateFile.Data.ToArray(), templateInstructions);
+            return new TextContent(ToJson(result));
+        }
     }
 }

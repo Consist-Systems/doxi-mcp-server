@@ -3,5 +3,7 @@
     public class AddTemplateResponse
     {
         public string TemplateId { get; set; }
+
+        public string MissingInformationError { get; set; }
     }
 }

@@ -1,10 +1,14 @@
-﻿using Consist.Doxi.Domain.Models;
+﻿using ApryseDataExtractor;
+using Consist.Doxi.Domain.Models;
 using Consist.Doxi.Domain.Models.ExternalAPI;
 using Consist.Doxi.External.Models.Models.ExternalAPI.Webhook;
 using Consist.Doxi.MCPServer.Domain.Models;
+using Consist.GPTDataExtruction;
+using Consist.GPTDataExtruction.Model;
 using Consist.MCPServer.DoxiAPIClient;
 using Doxi.APIClient;
 using Doxi.APIClient.Models;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Consist.Doxi.MCPServer.Domain
 {
@@ -12,12 +16,19 @@ namespace Consist.Doxi.MCPServer.Domain
     {
         private readonly IContextInformation _contextInformation;
         private readonly IDoxiClientService _doxiClientService;
+        private readonly IServiceProvider _serviceProvider;
 
+
+        private IGPTDataExtractionClient GPTDataExtractionClient => _serviceProvider.GetService<IGPTDataExtractionClient>();
+        private IDocumentFieldExtractor DocumentFieldExtractor => _serviceProvider.GetService<IDocumentFieldExtractor>();
+        
         public DoxiAPIWrapper(IContextInformation contextInformation,
-            IDoxiClientService doxiClientService)
+            IDoxiClientService doxiClientService,
+            IServiceProvider serviceProvider)
         {
             _contextInformation = contextInformation;
             _doxiClientService = doxiClientService;
+            _serviceProvider = serviceProvider;
         }
 
         private DoxiClient GetDoxiClient(string username, string password)
@@ -38,13 +49,6 @@ namespace Consist.Doxi.MCPServer.Domain
         public async Task<GetAllFlowsResponse> GetAllFlows(string username, string password)
             => await GetDoxiClient(username, password).GetAllFlows();
 
-        public async Task<CreateFlowResponse> AddSignFlow(string username, string password,
-            ExCreateFlowRequestBase createFlowJsonRequest, byte[] documentFile)
-            => await GetDoxiClient(username, password).AddSignFlow(createFlowJsonRequest, documentFile);
-
-        public async Task<string> EditSignFlow(string username, string password, EditFlowRequest editFlowRequest)
-            => await GetDoxiClient(username, password).EditSignFlow(editFlowRequest);
-
         public async Task<byte[]> GetDocument(string username, string password, string signFlowId, bool withSigns = true)
             => await GetDoxiClient(username, password).GetDocument(signFlowId, withSigns);
 
@@ -63,11 +67,6 @@ namespace Consist.Doxi.MCPServer.Domain
         public async Task SetFlowAction(string username, string password, string signFlowId, SetFlowActionRequest setFlowActionRequest)
             => await GetDoxiClient(username, password).SetFlowAction(signFlowId, setFlowActionRequest);
 
-        public async Task SetSignatures(string username, string password, string signFlowId, ExSetSignFlowRequest exSetSignFlowRequest)
-            => await GetDoxiClient(username, password).SetSignatures(signFlowId, exSetSignFlowRequest);
-
-        public async Task ReplaceSigner(string username, string password, ExReplaceSignerRequest exReplaceSignerRequest)
-            => await GetDoxiClient(username, password).ReplaceSigner(exReplaceSignerRequest);
 
         public async Task<byte[]> GetFlowAttachments(string username, string password, string signFlowId)
             => await GetDoxiClient(username, password).GetFlowAttachments(signFlowId);
@@ -75,8 +74,6 @@ namespace Consist.Doxi.MCPServer.Domain
         public async Task<byte[]> GetFlowAttachmentField(string username, string password, string signFlowId, GetFlowAttachmentFieldRequest request)
             => await GetDoxiClient(username, password).GetFlowAttachmentField(signFlowId, request);
 
-        //public async Task<string> AddAttachmentToFlow(string username, string password, Doxi.APIClient.AddAttachmentToFlowRequest addAttachmentToFlowRequest)
-        //    => await GetDoxiClient(username, password).AddAttachmentToFlow(addAttachmentToFlowRequest);
 
         public async Task<AddAttachmentAsBase64ToFlowResponse> AddAttachmentAsBase64ToFlow(string username, string password, string signFlowId, AddAttachmentBase64ToFlowRequest addAttachmentToFlowRequest)
             => await GetDoxiClient(username, password).AddAttachmentAsBase64ToFlow(signFlowId, addAttachmentToFlowRequest);
@@ -88,17 +85,12 @@ namespace Consist.Doxi.MCPServer.Domain
         public async Task<CreateFlowFromTemplateResponse> CreateFlowFromTemplate(string username, string password, string templateId, CreateFlowFromTemplateRequest request)
             => await GetDoxiClient(username, password).CreateFlowFromTemplate(templateId, request);
 
-        public async Task UpdateTemplate(string username, string password, string templateId, ExUpdateTemplateRequest request)
-            => await GetDoxiClient(username, password).UpdateTemplate(templateId, request);
-
         public async Task DeleteUserTemplate(string username, string password, string templateId, DeleteTemplateRequest request)
             => await GetDoxiClient(username, password).DeleteUserTemplate(templateId, request);
 
         public async Task<GetExTemplateInfoResponse> GetTemplate(string username, string password, string templateId)
             => await GetDoxiClient(username, password).GetTemplate(templateId);
 
-        //public async Task<string> AddAttachmentToTemplate(string username, string password, string templateId, Doxi.APIClient.AddAttachmentToFlowRequest request)
-        //    => await GetDoxiClient(username, password).AddAttachmentToTemplate(templateId, request);
 
         public async Task DeleteAttachmentFromTemplate(string username, string password, string templateId, string attachmentId)
             => await GetDoxiClient(username, password).DeleteAttachmentFromTemplate(templateId, attachmentId);
@@ -138,12 +130,6 @@ namespace Consist.Doxi.MCPServer.Domain
         public async Task<IEnumerable<ExGetKitsResponse>> GetKits(string username, string password)
             => await GetDoxiClient(username, password).GetKits();
 
-        // --------------------------------------------------------------------
-        // COMPANY
-        // --------------------------------------------------------------------
-
-        public async Task<byte[]> GetFormSettings(string username, string password, string companyId, string formId)
-            => await GetDoxiClient(username, password).GetFormSettings(companyId, formId);
 
         // --------------------------------------------------------------------
         // USER MANAGEMENT
@@ -161,30 +147,20 @@ namespace Consist.Doxi.MCPServer.Domain
         public async Task<IEnumerable<User>> GetUsers(string username, string password, Dictionary<string, object> queryParams)
             => await GetDoxiClient(username, password).GetUsers(queryParams);
 
-        // --------------------------------------------------------------------
-        // WEBHOOKS
-        // --------------------------------------------------------------------
+        public async Task<AddTemplateResponse> AddTemplate(string username, string password, byte[] templateDocument, string templateInstructions)
+        {
+            var createTemplateInformation = await GPTDataExtractionClient.ExtractTemplateInformation(templateInstructions);
+            var documentFields = await DocumentFieldExtractor.GetDocumentElements(templateDocument);
+            var fieldLableToSignerMapping = await GPTDataExtractionClient.ExtractFieldLableToSignerMapping(createTemplateInformation,
+                documentFields.Select(f => new FieldWithPage(f.PageNumber, f.ElementLabel)));
+            var exAddTemplateRequest = GetExAddTemplateRequest(createTemplateInformation, documentFields, fieldLableToSignerMapping);
+            var templateId = await GetDoxiClient(username, password).AddTemplate(exAddTemplateRequest);
+            return new AddTemplateResponse { TemplateId = templateId };
+        }
 
-        public async Task<AddWebHookSubscriptionResponse> AddSubscription(string username, string password, WebhookSubscription request)
-            => await GetDoxiClient(username, password).AddSubscription(request);
-
-        public async Task<WebhookPayload> WebHookCheck(string username, string password, WebhookSubscription request)
-            => await GetDoxiClient(username, password).WebHookCheck(request);
-
-        public async Task<IEnumerable<GetWebhookSubscriptionsResponse>> GetAllWebhookSubscription(string username, string password)
-            => await GetDoxiClient(username, password).GetAllWebhookSubscription();
-
-        public async Task<IEnumerable<SearchWebhookCallLogsResponse>> SearchWebhookCallLogs(string username, string password, string subscriptionId, RequestWebhookSenderLog request)
-            => await GetDoxiClient(username, password).SearchWebhookCallLogs(subscriptionId, request);
-
-        public async Task UpdateWebhookSubscription(string username, string password, string subscriptionId, WebhookSubscription request)
-            => await GetDoxiClient(username, password).UpdateWebhookSubscription(subscriptionId, request);
-
-        public async Task DeleteSubscription(string username, string password, string subscriptionId)
-            => await GetDoxiClient(username, password).DeleteSubscription(subscriptionId);
-
-        public async Task<AddTemplateResponse> AddTemplate(string username, string password, ExAddTemplateRequest addTemplateRequest, string uri, ReadOnlyMemory<byte> data)
-            => new AddTemplateResponse{TemplateId = await GetDoxiClient(username, password).AddTemplate(addTemplateRequest)};
-        
+        private ExAddTemplateRequest GetExAddTemplateRequest(CreateTemplateInformation createTemplateInformation, IEnumerable<ExTemplatFlowElement> documentFields, IEnumerable<FieldWithSigner> fieldLableToSignerMapping)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

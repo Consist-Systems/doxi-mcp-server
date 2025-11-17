@@ -15,6 +15,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Consist.MCPServer.DoxiAPICl
 EndProject
 Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{81DDED9D-158B-E303-5F62-77A2896D2A5A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Consist.GPTDataExtruction", "Services\Consist.GPTDataExtruction\Consist.GPTDataExtruction.csproj", "{6DE37C3D-08B9-4F83-964C-272C7D80E0E2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ApryseDataExtractor", "Services\ApryseDataExtractor\ApryseDataExtractor.csproj", "{1790A735-C6C2-4C0E-B6BA-8BAA968DADEC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -37,12 +41,22 @@ Global
 		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6DE37C3D-08B9-4F83-964C-272C7D80E0E2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6DE37C3D-08B9-4F83-964C-272C7D80E0E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6DE37C3D-08B9-4F83-964C-272C7D80E0E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6DE37C3D-08B9-4F83-964C-272C7D80E0E2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1790A735-C6C2-4C0E-B6BA-8BAA968DADEC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1790A735-C6C2-4C0E-B6BA-8BAA968DADEC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1790A735-C6C2-4C0E-B6BA-8BAA968DADEC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1790A735-C6C2-4C0E-B6BA-8BAA968DADEC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{77A0A614-D1BF-49AB-A2FD-38E8AA27833F} = {5B6B63F4-083F-4656-86AD-C9D0B7C5192D}
+		{6DE37C3D-08B9-4F83-964C-272C7D80E0E2} = {5B6B63F4-083F-4656-86AD-C9D0B7C5192D}
+		{1790A735-C6C2-4C0E-B6BA-8BAA968DADEC} = {5B6B63F4-083F-4656-86AD-C9D0B7C5192D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {41A2247B-C888-4223-9953-56395B780951}

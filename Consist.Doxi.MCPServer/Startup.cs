@@ -1,5 +1,6 @@
 ﻿using Consist.Doxi.MCPServer.Domain;
 using Consist.Doxi.MCPServer.Mapper;
+using Consist.GPTDataExtruction;
 using Consist.MCPServer.DoxiAPIClient;
 using Consist.ProjectName.Filters;
 using NLog;
@@ -58,7 +59,8 @@ namespace Consist.ProjectName
             {
                 options.IdpURL = Configuration["DoxiAPIClient:IdpURL"];
                 options.DoxiAPIUrl = Configuration["DoxiAPIClient:DoxiAPIUrl"];
-            });
+            })
+            .AddGPTDataExtraction();
 
             services.AddMvc(options =>
             {
