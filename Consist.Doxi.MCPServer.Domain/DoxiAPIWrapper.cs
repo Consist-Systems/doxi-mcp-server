@@ -10,6 +10,7 @@ using Consist.MCPServer.DoxiAPIClient;
 using Doxi.APIClient;
 using Doxi.APIClient.Models;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
 using System.Collections.Generic;
 
 namespace Consist.Doxi.MCPServer.Domain
@@ -163,7 +164,9 @@ namespace Consist.Doxi.MCPServer.Domain
                     templateDocument);
 
             var exAddTemplateRequest = GetExAddTemplateRequest(createTemplateInformation, documentFields, fieldLableToSignerMapping, templateDocument);
-            var templateId = await GetDoxiClient(username, password).AddTemplate(exAddTemplateRequest);
+            var doxiClient = GetDoxiClient(username, password);
+            var debugRequest = JsonConvert.SerializeObject(exAddTemplateRequest);
+            var templateId = await doxiClient.AddTemplate(exAddTemplateRequest);
             return new AddTemplateResponse { TemplateId = templateId };
         }
 
@@ -178,17 +181,17 @@ namespace Consist.Doxi.MCPServer.Domain
                 Base64DocumentFile = Convert.ToBase64String(templateDocument),
                 TemplateName = createTemplateInformation.Name,
                 FlowElements = documentFields.ToArray(),
-                SendMethodType = Enums.SendMethodType.ParallelFlow,//TODO: get by CreateTemplateInformation
+                SendMethodType = Enums.SendMethodType.QueuedFlow,//TODO: get by CreateTemplateInformation
                 SenderKey = new ParticipantKey<ParticipantKeyType>  
                 {
                     Type = ParticipantKeyType.UserEmail,
                     Key = createTemplateInformation.SenderEmail
                 },
                 TemplateType = TemplateType.Standard,//TODO: get by CreateTemplateInformation
-                Users = fieldLableToSignerMapping.Select(s=>new ExTemplateUser
+                Users = createTemplateInformation.Signers.Select((s,index)=>new ExTemplateUser
                 {
-                    UserIndex = s.SignerIndex,
-                    FixedSignerKey = GetFixedSignerKey(signers[s.SignerIndex])
+                    UserIndex = index,
+                    FixedSignerKey = GetFixedSignerKey(s)
                 }).ToArray()
             };
         }

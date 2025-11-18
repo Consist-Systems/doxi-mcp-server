@@ -1,5 +1,4 @@
-﻿using AutoMapper;
-using Consist.Doxi.Domain.Models;
+﻿using Consist.Doxi.Domain.Models;
 using Consist.Doxi.Domain.Models.ExternalAPI;
 using Consist.Doxi.Enums;
 using Consist.Doxi.MCPServer.Domain;
@@ -14,15 +13,10 @@ namespace Consist.ProjectName.McpTools
     public class FlowsTool
     {
         private readonly DoxiAPIWrapper _doxiAPIWrapper;
-        private readonly IServiceProvider _serviceProvider;
 
-        IMapper Mapper => _serviceProvider.GetRequiredService<IMapper>();
-
-        public FlowsTool(DoxiAPIWrapper doxiAPIWrapper,
-            IServiceProvider serviceProvider)
+        public FlowsTool(DoxiAPIWrapper doxiAPIWrapper)
         {
             _doxiAPIWrapper = doxiAPIWrapper;
-            _serviceProvider = serviceProvider;
         }
 
         private static string ToJson(object obj)

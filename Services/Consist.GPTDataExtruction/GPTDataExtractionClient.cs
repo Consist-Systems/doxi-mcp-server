@@ -1,8 +1,8 @@
 ﻿using Consist.GPTDataExtruction.Extensions;
 using Consist.GPTDataExtruction.Model;
 using Flurl.Http;
-using Flurl.Http.Configuration;
-using Flurl.Http.Newtonsoft;
+//using Flurl.Http.Configuration;
+//using Flurl.Http.Newtonsoft;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NJsonSchema;
@@ -13,16 +13,16 @@ namespace Consist.GPTDataExtruction
 public class GPTDataExtractionClient : IGPTDataExtractionClient
 {
         private readonly GPTDataExtructionConfiguration _config;
-        private NewtonsoftJsonSerializer _serializer;
+        //private NewtonsoftJsonSerializer _serializer;
 
         public GPTDataExtractionClient(GPTDataExtructionConfiguration config)
         {
-            var settings = new JsonSerializerSettings
-            {
-                ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-            };
-            // create a Newtonsoft-based serializer for Flurl to use
-            _serializer = new Flurl.Http.Newtonsoft.NewtonsoftJsonSerializer(settings);
+            //var settings = new JsonSerializerSettings
+            //{
+            //    ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+            //};
+            //// create a Newtonsoft-based serializer for Flurl to use
+            //_serializer = new Flurl.Http.Newtonsoft.NewtonsoftJsonSerializer(settings);
 
             _config = config;
         }
@@ -52,7 +52,7 @@ public class GPTDataExtractionClient : IGPTDataExtractionClient
 
             var response = await "https://api.openai.com/v1/responses"
                     .WithOAuthBearerToken(_config.GPTAPIKey)
-                    .WithSettings(settings => settings.JsonSerializer = _serializer)
+                    //.WithSettings(settings => settings.JsonSerializer = _serializer)
                     .AllowAnyHttpStatus()
                     .PostJsonAsync(payload);
 
