@@ -309,6 +309,18 @@
         "password": "Doxi API password.",
         "queryParams": "Dictionary<string, object> used as query parameters (e.g. page, pageSize, filters)."
       }
+    },
+    {
+      "name": "AddTemplate",
+      "summary": "Create Doxi template from PDF file, templateFileBase64 parameter is the pdf file needed to create the template. The templateInstructions parameter needed for telling Doxi all the information on creating the template",
+      "endpoint": "POST /ex/template",
+      "returns": "Template creation result JSON (TextContent) with templateId and metadata.",
+      "params": {
+        "username": "Doxi API username.",
+        "password": "Doxi API password.",
+        "templateInstructions": "Instructions describing the template to be created, including template name, signers, sender email, and other template configuration details.",
+        "templateFileBase64": "Base64-encoded template document file (PDF/Word/Image)."
+      }
     }
   ],
   "enums": {
