@@ -1,46 +1,46 @@
 ﻿namespace ApryseDataExtractor.Models
 {
-    internal class DocumentFieldsPosition
+    public class DocumentFieldsPosition
     {
-        internal DocumentProperties Properties { get; set; }
-        internal RunInfo RunInfo { get; set; }
-        internal List<PdfPage> Pages { get; set; }
+        public DocumentProperties Properties { get; set; }
+        public RunInfo RunInfo { get; set; }
+        public List<PdfPage> Pages { get; set; }
     }
 
-    internal class DocumentProperties
+    public class DocumentProperties
     {
-        internal string Producer { get; set; }
-        internal string SchemaVersion { get; set; }
-        internal string CoordinateSystem { get; set; }
+        public string Producer { get; set; }
+        public string SchemaVersion { get; set; }
+        public string CoordinateSystem { get; set; }
     }
 
-    internal class RunInfo
+    public class RunInfo
     {
-        internal List<string> Warnings { get; set; }
-        internal string ProducerPlatform { get; set; }
-        internal string ProducerVersion { get; set; }
+        public List<string> Warnings { get; set; }
+        public string ProducerPlatform { get; set; }
+        public string ProducerVersion { get; set; }
     }
 
-    internal class PdfPage
+    public class PdfPage
     {
-        internal PageProperties Properties { get; set; }
-        internal List<FormElement> FormElements { get; set; }
+        public PageProperties Properties { get; set; }
+        public List<FormElement> FormElements { get; set; }
     }
 
-    internal class PageProperties
+    public class PageProperties
     {
-        internal int PageNumber { get; set; }
+        public int PageNumber { get; set; }
     }
 
-    internal class FormElement
+    public class FormElement
     {
-        internal string Type { get; set; }
-        internal float Confidence { get; set; }
+        public string Type { get; set; }
+        public float Confidence { get; set; }
 
         /// <summary>
         /// rect = [x1, y1, x2, y2]
         /// </summary>
-        internal List<float> Rect { get; set; }
+        public List<float> Rect { get; set; }
     }
 
 }

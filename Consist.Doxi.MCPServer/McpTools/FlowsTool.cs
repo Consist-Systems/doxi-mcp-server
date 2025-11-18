@@ -2,10 +2,7 @@
 using Consist.Doxi.Domain.Models;
 using Consist.Doxi.Domain.Models.ExternalAPI;
 using Consist.Doxi.Enums;
-using Consist.Doxi.External.Models.Models.ExternalAPI.Webhook;
 using Consist.Doxi.MCPServer.Domain;
-using Consist.Doxi.MCPServer.Models;
-using Doxi.APIClient.Models;
 using Microsoft.Extensions.AI;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
@@ -236,10 +233,19 @@ namespace Consist.ProjectName.McpTools
             return new TextContent(ToJson(result));
         }
 
-        [McpServerTool(Name = "GetUsers"), Description("Create Doxi template from PDF file, templateFile parameter is the pdf file needed to create the template. The templateInstructions parameter needed for telling Doxi all the information on creating the template")]
-        public async Task<TextContent> AddTemplate(string username, string password, DataContent templateFile,string templateInstructions)
+        /// <summary>
+        /// Create Doxi template from PDF file, templateFileBase64 parameter is the pdf file needed to create the template. The templateInstructions parameter needed for telling Doxi all the information on creating the template
+        /// </summary>
+        /// <param name="username">api username</param>
+        /// <param name="password">api password</param>
+        /// <param name="templateFileBase64">The template document (PDF/Word/Image)</param>
+        /// <param name="templateInstructions">instruction on the template needs to be created</param>
+        /// <returns></returns>
+        [McpServerTool(Name = "AddTemplate"), Description("Create Doxi template from PDF file, templateFileBase64 parameter is the pdf file needed to create the template. The templateInstructions parameter needed for telling Doxi all the information on creating the template")]
+        public async Task<TextContent> AddTemplate(string username, string password,string templateInstructions, string templateFileBase64)
         {
-            var result = await _doxiAPIWrapper.AddTemplate(username, password, templateFile.Data.ToArray(), templateInstructions);
+            var templateFile = Convert.FromBase64String(templateFileBase64);
+            var result = await _doxiAPIWrapper.AddTemplate(username, password, templateFile, templateInstructions);
             return new TextContent(ToJson(result));
         }
     }

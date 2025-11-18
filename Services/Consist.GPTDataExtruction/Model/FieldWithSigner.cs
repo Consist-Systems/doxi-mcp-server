@@ -2,11 +2,11 @@
 {
     public class FieldWithSigner : FieldWithPage
     {
-        public FieldWithSigner(int page, string lable,string signerTitle) : base(page,lable )
+        public FieldWithSigner(int page, string elementId,int signerIndex) : base(page, elementId)
         {
-            SignerTitle = signerTitle;
+            SignerIndex = signerIndex;
         }
 
-        public string SignerTitle { get; private set; }
+        public int SignerIndex { get; private set; }
     }
 }

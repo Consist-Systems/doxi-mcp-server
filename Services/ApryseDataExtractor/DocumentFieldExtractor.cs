@@ -16,18 +16,25 @@ namespace ApryseDataExtractor
 
         public async Task<IEnumerable<ExTemplatFlowElement>> GetDocumentElements(byte[] documentBytes)
         {
-            var tempFilePath = Path.GetTempFileName();
+            var tempFilePath = Path.GetTempFileName().Replace(".tmp", ".pdf");
             File.WriteAllBytes(tempFilePath, documentBytes);
+            try
+            {
+                var documentFieldsPositionJson =
+                    DataExtractionModule.ExtractData(tempFilePath, DataExtractionModule.DataExtractionEngine.e_form);
+                var documentFieldsPosition = JsonConvert.DeserializeObject<DocumentFieldsPosition>(documentFieldsPositionJson);
 
-            var documentFieldsPositionJson =
-                DataExtractionModule.ExtractData(tempFilePath, DataExtractionModule.DataExtractionEngine.e_form);
-            var documentFieldsPosition = JsonConvert.DeserializeObject<DocumentFieldsPosition>(documentFieldsPositionJson);
+                var documentStructureJson =
+                    DataExtractionModule.ExtractData(tempFilePath, DataExtractionModule.DataExtractionEngine.e_doc_structure);
+                var documentStructure = JsonConvert.DeserializeObject<DocumentStructure>(documentStructureJson);
 
-            var documentStructureJson =
-                DataExtractionModule.ExtractData(tempFilePath, DataExtractionModule.DataExtractionEngine.e_doc_structure);
-            var documentStructure = JsonConvert.DeserializeObject<DocumentStructure>(documentStructureJson);
-
-            return GetMatchFieldToLabel(documentFieldsPosition, documentStructure);
+                return GetMatchFieldToLabel(documentFieldsPosition, documentStructure);
+            }
+            finally
+            {
+                if (File.Exists(tempFilePath))
+                    File.Delete(tempFilePath);
+            }
         }
 
 
@@ -172,7 +179,8 @@ namespace ApryseDataExtractor
                         Y1 = rect[1],
                         X2 = rect[2],
                         Y2 = rect[3],
-                        PageNumber = pageNumber
+                        PageNumber = pageNumber,
+                        FieldType = formElement.Type   // NEW
                     });
                 }
             }
@@ -188,13 +196,12 @@ namespace ApryseDataExtractor
         {
             var samePage = textBlocks.Where(tb => tb.PageNumber == field.PageNumber).ToList();
             if (samePage.Count == 0)
-                return CreateElement(field, null);
+                return CreateElement(field, field.FieldType, null);
 
             var overlapping = samePage.Where(tb => OverlapsVertically(field, tb)).ToList();
             if (overlapping.Count == 0)
-                return CreateElement(field, null);
+                return CreateElement(field, field.FieldType, null);
 
-            // RTL → label usually to the right
             var rightSide = overlapping.Where(tb => tb.X1 >= field.X2 - 3).ToList();
             var candidates = rightSide.Any() ? rightSide : overlapping;
 
@@ -208,11 +215,11 @@ namespace ApryseDataExtractor
             }
 
             if (!valid.Any())
-                return CreateElement(field, null);
+                return CreateElement(field, field.FieldType, null);
 
             var best = valid.OrderBy(tb => HorizontalDistance(field, tb)).FirstOrDefault();
 
-            return CreateElement(field, best?.Text);
+            return CreateElement(field, field.FieldType, best?.Text);
         }
 
 
@@ -228,7 +235,6 @@ namespace ApryseDataExtractor
             float textH = text.Y2 - text.Y1;
             float minH = Math.Min(fieldH, textH);
 
-            // Consider enough overlap if >= 30% of smaller block height
             return overlap >= (minH * 0.30f);
         }
 
@@ -245,10 +251,15 @@ namespace ApryseDataExtractor
             return text.Trim().All(c => char.IsPunctuation(c));
         }
 
-        private ExTemplatFlowElement CreateElement(FieldRectangle field, string? label)
+
+        // ---------------------------------------------
+        // CREATE ELEMENT WITH TYPE MAPPING
+        // ---------------------------------------------
+        private ExTemplatFlowElement CreateElement(FieldRectangle field, string? fieldType, string? label)
         {
             return new ExTemplatFlowElement
             {
+                ElementId = Guid.NewGuid().ToString(),
                 PageNumber = field.PageNumber,
                 Position = new ElementPosition
                 {
@@ -258,7 +269,18 @@ namespace ApryseDataExtractor
                     Height = field.Y2 - field.Y1
                 },
                 ElementLabel = label,
-                ElementType = ElementType.Text
+                ElementType = MapElementType(fieldType) 
+            };
+        }
+
+        private ElementType MapElementType(string type)
+        {
+            return type switch
+            {
+                "formCheckBox" => ElementType.Checkbox,
+                "formTextField" => ElementType.Text,
+                "formDigitalSignature" => ElementType.Sign,
+                _ => ElementType.Text
             };
         }
 
@@ -273,6 +295,8 @@ namespace ApryseDataExtractor
             public float X2 { get; set; }
             public float Y2 { get; set; }
             public int PageNumber { get; set; }
+
+            public string FieldType { get; set; } // NEW
         }
 
         private class TextBlock

@@ -1,12 +1,15 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace Consist.GPTDataExtruction
 {
     public static class DIRegistration
     {
-        public static IServiceCollection AddGPTDataExtraction(this IServiceCollection services)
+        public static IServiceCollection AddGPTDataExtraction(this IServiceCollection services,Action<GPTDataExtructionConfiguration> config)
         {
-            services.AddScoped<IGPTDataExtractionClient, GPTDataExtractionClient>();
+            services.Configure(config);
+            services.AddSingleton(resolver => resolver.GetRequiredService<IOptions<GPTDataExtructionConfiguration>>().Value);
+            services.AddSingleton<IGPTDataExtractionClient, GPTDataExtractionClient>();
             return services;
         }
     }

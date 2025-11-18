@@ -1,10 +1,10 @@
 ﻿using Consist.Doxi.MCPServer.Domain;
-using Consist.Doxi.MCPServer.Mapper;
 using Consist.GPTDataExtruction;
 using Consist.MCPServer.DoxiAPIClient;
 using Consist.ProjectName.Filters;
 using NLog;
 using NLog.Web;
+using ApryseDataExtractor;
 
 namespace Consist.ProjectName
 {
@@ -49,10 +49,7 @@ namespace Consist.ProjectName
 
             services.AddHttpClient();
 
-            services.AddAutoMapper(cfg =>
-            {
-                cfg.AddProfile<MapperRegistration>();
-            });
+            
 
             services.AddServiceDomain()
             .AddDoxiAPIClient(options =>
@@ -60,7 +57,16 @@ namespace Consist.ProjectName
                 options.IdpURL = Configuration["DoxiAPIClient:IdpURL"];
                 options.DoxiAPIUrl = Configuration["DoxiAPIClient:DoxiAPIUrl"];
             })
-            .AddGPTDataExtraction();
+            .AddGPTDataExtraction(config=>
+            {
+                config.ExtractFieldLableToSignerMappingModel = Configuration["GPTDataExtraction:ExtractFieldLableToSignerMappingModel"];
+                config.ExtractTemplateInformationModel = Configuration["GPTDataExtraction:ExtractTemplateInformationModel"];
+                config.GPTAPIKey = Configuration["GPTDataExtraction:GPTAPIKey"];
+            })
+            .AddApryseDataExtractor(config =>
+            {
+                config.ApryseApiKey = Configuration["ApryseApiKey"];
+            });
 
             services.AddMvc(options =>
             {

@@ -8,6 +8,8 @@
 
   <ItemGroup>
     <PackageReference Include="Doxi.APIClient" Version="5.0.7" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2" />
     <PackageReference Include="PDFTron.NET.x64" Version="11.8.1" />
   </ItemGroup>
 

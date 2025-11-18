@@ -1,85 +1,85 @@
 ﻿namespace ApryseDataExtractor.Models
 {
-    internal class DocumentStructure
+    public class DocumentStructure
     {
-        internal List<Page> Pages { get; set; }
+        public List<Page> Pages { get; set; }
     }
 
-    internal class Page
+    public class Page
     {
-        internal PageProperties Properties { get; set; }
-        internal List<Element> Elements { get; set; }
+        public PageProperties Properties { get; set; }
+        public List<Element> Elements { get; set; }
     }
 
-    internal class Element
+    public class Element
     {
-        internal string Type { get; set; }
-        internal float[] Rect { get; set; }
+        public string Type { get; set; }
+        public float[] Rect { get; set; }
 
-        internal TextStyle TextStyle { get; set; }
-        internal Style Style { get; set; }
+        public TextStyle TextStyle { get; set; }
+        public Style Style { get; set; }
 
-        internal List<ContentNode> Contents { get; set; }
+        public List<ContentNode> Contents { get; set; }
 
-        internal List<Row> Trs { get; set; }       // For tables
-        internal List<float> ColumnWidths { get; set; }
+        public List<Row> Trs { get; set; }       // For tables
+        public List<float> ColumnWidths { get; set; }
 
-        internal Table Table { get; set; }
-        internal List<Element> NestedElements { get; set; }
+        public Table Table { get; set; }
+        public List<Element> NestedElements { get; set; }
     }
 
-    internal class ContentNode
+    public class ContentNode
     {
-        internal string Type { get; set; }
-        internal float[] Rect { get; set; }
-        internal string Text { get; set; }
-        internal Style Style { get; set; }
-        internal List<ContentNode> Contents { get; set; }
+        public string Type { get; set; }
+        public float[] Rect { get; set; }
+        public string Text { get; set; }
+        public Style Style { get; set; }
+        public List<ContentNode> Contents { get; set; }
 
         // For nested structures
-        internal Table Table { get; set; }
+        public Table Table { get; set; }
     }
 
-    internal class Style
+    public class Style
     {
-        internal bool? Bold { get; set; }
-        internal int? Weight { get; set; }
-        internal bool? Italic { get; set; }
-        internal bool? Underline { get; set; }
-        internal float? PointSize { get; set; }
-        internal string FontFace { get; set; }
+        public bool? Bold { get; set; }
+        public int? Weight { get; set; }
+        public bool? Italic { get; set; }
+        public bool? Underline { get; set; }
+        public float? PointSize { get; set; }
+        public string FontFace { get; set; }
     }
 
-    internal class TextStyle
+    public class TextStyle
     {
-        internal bool? Italic { get; set; }
-        internal bool? Underline { get; set; }
-        internal float? PointSize { get; set; }
-        internal string FontFace { get; set; }
-        internal string ParentStyle { get; set; }
+        public bool? Italic { get; set; }
+        public bool? Underline { get; set; }
+        public float? PointSize { get; set; }
+        public string FontFace { get; set; }
+        public string ParentStyle { get; set; }
     }
 
-    internal class Table
+    public class Table
     {
-        internal float[] Rect { get; set; }
-        internal List<Row> Trs { get; set; }
-        internal List<float> ColumnWidths { get; set; }
+        public float[] Rect { get; set; }
+        public List<Row> Trs { get; set; }
+        public List<float> ColumnWidths { get; set; }
     }
 
-    internal class Row
+    public class Row
     {
-        internal float[] Rect { get; set; }
-        internal List<Cell> Tds { get; set; }
+        public float[] Rect { get; set; }
+        public List<Cell> Tds { get; set; }
     }
 
-    internal class Cell
+    public class Cell
     {
-        internal float[] Rect { get; set; }
-        internal int RowSpan { get; set; }
-        internal int ColSpan { get; set; }
-        internal int RowStart { get; set; }
-        internal int ColStart { get; set; }
-        internal List<ContentNode> Contents { get; set; }
+        public float[] Rect { get; set; }
+        public int RowSpan { get; set; }
+        public int ColSpan { get; set; }
+        public int RowStart { get; set; }
+        public int ColStart { get; set; }
+        public List<ContentNode> Contents { get; set; }
     }
 
 }

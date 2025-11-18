@@ -1,7 +1,7 @@
-using Microsoft.Extensions.Logging;
 using Doxi.APIClient;
-using SimpleCache;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using SimpleCache;
 
 namespace Consist.MCPServer.DoxiAPIClient
 {

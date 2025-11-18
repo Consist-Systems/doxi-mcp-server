@@ -2,15 +2,15 @@
 {
     public class FieldWithPage
     {
-        public FieldWithPage(int page,string lable)
+        public FieldWithPage(int page,string elementId)
         {
-            Lable = lable;
+            ElementId = elementId;
             Page = page;
         }
 
         public int Page { get; private set; }
 
-        public string Lable { get; private set; }
+        public string ElementId { get; private set; }
 
     }
 }
