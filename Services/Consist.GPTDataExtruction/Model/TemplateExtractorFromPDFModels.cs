@@ -7,10 +7,19 @@
         public List<SignerResponse> Signers { get; set; }
     }
 
+    public class TemplateInfoFromPDFwithFields : TemplateInfoFromPDF
+    {
+        public new List<SignerResponseWithFields> Signers { get; set; }
+    }
+
     public class SignerResponse
     {
         public string Title { get; set; }
         public int? SignerType { get; set; }
-        public List<string> Fields { get; set; } 
+    }
+
+    public class SignerResponseWithFields : SignerResponse
+    {
+        public List<string> Fields { get; set; }
     }
 }

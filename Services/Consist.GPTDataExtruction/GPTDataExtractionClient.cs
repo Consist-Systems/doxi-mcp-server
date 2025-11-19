@@ -15,7 +15,7 @@ public class GPTDataExtractionClient : IAIModelDataExtractionClient
             _serviceProvider = serviceProvider;
         }
 
-        public Task<TemplateInfoFromPDF> ExtractTemplateInformationFromPDF(byte[] pdfFile)
+        public Task<TemplateInfoFromPDFwithFields> ExtractTemplateInformationFromPDF(byte[] pdfFile)
         {
             return GptTemplateExtractionService.ExtractAsync(pdfFile);
         }

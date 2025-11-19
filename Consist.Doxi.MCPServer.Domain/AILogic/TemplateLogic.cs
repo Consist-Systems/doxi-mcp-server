@@ -54,7 +54,7 @@ namespace Consist.Doxi.MCPServer.Domain.AILogic
             return _doxiClientService[doxiClientContext];
         }
 
-        private ExAddTemplateRequest GetExAddTemplateRequest(CreateTemplateInformation templateInformationFromPrompt, TemplateInfoFromPDF templateInformationFromPDF, IEnumerable<ExTemplatFlowElement> documentFields, byte[] templateDocument)
+        private ExAddTemplateRequest GetExAddTemplateRequest(CreateTemplateInformation templateInformationFromPrompt, TemplateInfoFromPDFwithFields templateInformationFromPDF, IEnumerable<ExTemplatFlowElement> documentFields, byte[] templateDocument)
         {
             return null;
             //var signers = createTemplateInformation.Signers.ToArray();
