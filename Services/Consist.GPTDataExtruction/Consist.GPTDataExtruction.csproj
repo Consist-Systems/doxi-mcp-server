@@ -14,4 +14,8 @@
 	  <PackageReference Include="NJsonSchema" Version="11.5.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Consist.PDFConverter\Consist.PDFConverter.csproj" />
+  </ItemGroup>
+
 </Project>

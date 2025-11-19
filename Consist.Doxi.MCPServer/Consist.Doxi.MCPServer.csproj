@@ -42,6 +42,7 @@
     <PackageReference Include="NLog.Web.AspNetCore" Version="5.3.11" />
     <PackageReference Include="PoweredSoft.DynamicJwtBearer.DynamicAuthority" Version="0.1.0" />
     <PackageReference Include="Stef.ModelContextProtocol.SemanticKernel" Version="0.6.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
   </ItemGroup>
 
   <ItemGroup>

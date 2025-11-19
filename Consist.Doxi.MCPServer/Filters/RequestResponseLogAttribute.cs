@@ -56,10 +56,6 @@ namespace Consist.ProjectName.Filters
             try
             {
                 var actionSource = GetActionSource(context.RouteData);
-                if (!actionSource.StartsWith("WinAuth."))
-                {
-                    _logger.SetPrameter(IP_PARM, GetUserIp(context.HttpContext));
-                }
                 _logger.LogInformation(string.Format(ENTER_LOG_FORMAT,
                     actionSource,
                     string.Join(Environment.NewLine, requestArguments)));
@@ -101,34 +97,6 @@ namespace Consist.ProjectName.Filters
             return string.Format(ACTION_SOURCE_FORMAT, routeData.Values["Controller"], routeData.Values["Action"]);
         }
 
-        public string GetUserIp(HttpContext httpContext)
-        {
-            try
-            {
-                var xForwardedForHeader = httpContext.Request.Headers?.FirstOrDefault(x => x.Key == _configuration["ClientIPHeader"]);
-                if (xForwardedForHeader != null
-                    && !string.IsNullOrEmpty(httpContext.Request.Headers[_configuration["ClientIPHeader"]]))
-                {
-                    return httpContext.Request.Headers[_configuration["ClientIPHeader"]];
-                }
-
-                var userIp = httpContext.Connection?.RemoteIpAddress?.MapToIPv4()?.ToString();
-
-                if (string.IsNullOrEmpty(userIp))
-                {
-                    var headersStr = string.Empty;
-                    if (httpContext.Request.Headers != null)
-                    {
-                        headersStr = JsonConvert.SerializeObject(httpContext.Request.Headers);
-                    }
-                }
-                return userIp;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex.Message, ex);
-                return null;
-            }
-        }
+       
     }
 }

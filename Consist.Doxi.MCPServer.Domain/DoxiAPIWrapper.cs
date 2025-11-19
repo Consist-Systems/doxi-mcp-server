@@ -1,17 +1,8 @@
-﻿using ApryseDataExtractor;
-using Consist.Doxi.Domain.Models;
+﻿using Consist.Doxi.Domain.Models;
 using Consist.Doxi.Domain.Models.ExternalAPI;
-using Consist.Doxi.Enums;
-using Consist.Doxi.External.Models.Models.ExternalAPI.Webhook;
-using Consist.Doxi.MCPServer.Domain.Models;
-using Consist.GPTDataExtruction;
-using Consist.GPTDataExtruction.Model;
 using Consist.MCPServer.DoxiAPIClient;
 using Doxi.APIClient;
 using Doxi.APIClient.Models;
-using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json;
-using System.Collections.Generic;
 
 namespace Consist.Doxi.MCPServer.Domain
 {
@@ -19,19 +10,14 @@ namespace Consist.Doxi.MCPServer.Domain
     {
         private readonly IContextInformation _contextInformation;
         private readonly IDoxiClientService _doxiClientService;
-        private readonly IServiceProvider _serviceProvider;
 
 
-        private IGPTDataExtractionClient GPTDataExtractionClient => _serviceProvider.GetService<IGPTDataExtractionClient>();
-        private IDocumentFieldExtractor DocumentFieldExtractor => _serviceProvider.GetService<IDocumentFieldExtractor>();
         
         public DoxiAPIWrapper(IContextInformation contextInformation,
-            IDoxiClientService doxiClientService,
-            IServiceProvider serviceProvider)
+            IDoxiClientService doxiClientService)
         {
             _contextInformation = contextInformation;
             _doxiClientService = doxiClientService;
-            _serviceProvider = serviceProvider;
         }
 
         private DoxiClient GetDoxiClient(string username, string password)
@@ -150,76 +136,6 @@ namespace Consist.Doxi.MCPServer.Domain
         public async Task<IEnumerable<User>> GetUsers(string username, string password, Dictionary<string, object> queryParams)
             => await GetDoxiClient(username, password).GetUsers(queryParams);
 
-        public async Task<AddTemplateResponse> AddTemplate(string username, string password, byte[] templateDocument, string templateInstructions)
-        {
-            var createTemplateInformation = await GPTDataExtractionClient.ExtractTemplateInformation(templateInstructions);
-            var documentFields = await DocumentFieldExtractor.GetDocumentElements(templateDocument);
-            
-            IEnumerable<FieldWithSigner> fieldLableToSignerMapping;
-            if (createTemplateInformation.Signers.Count() == 1)
-                fieldLableToSignerMapping = documentFields.Select(f=>new FieldWithSigner(f.PageNumber,f.ElementId,0));
-            else
-                fieldLableToSignerMapping = await GPTDataExtractionClient.ExtractFieldLableToSignerMapping(createTemplateInformation.Signers,
-                    documentFields.Select(f => new FieldWithPage(f.PageNumber, f.ElementLabel)),
-                    templateDocument);
-
-            var exAddTemplateRequest = GetExAddTemplateRequest(createTemplateInformation, documentFields, fieldLableToSignerMapping, templateDocument);
-            var doxiClient = GetDoxiClient(username, password);
-            var debugRequest = JsonConvert.SerializeObject(exAddTemplateRequest);
-            var templateId = await doxiClient.AddTemplate(exAddTemplateRequest);
-            return new AddTemplateResponse { TemplateId = templateId };
-        }
-
-        
-
-        private ExAddTemplateRequest GetExAddTemplateRequest(CreateTemplateInformation createTemplateInformation, IEnumerable<ExTemplatFlowElement> documentFields, IEnumerable<FieldWithSigner> fieldLableToSignerMapping, byte[] templateDocument)
-        {
-            var signers = createTemplateInformation.Signers.ToArray();
-            return new ExAddTemplateRequest
-            {
-                DocumentFileName = "tempalte.pdf",
-                Base64DocumentFile = Convert.ToBase64String(templateDocument),
-                TemplateName = createTemplateInformation.Name,
-                FlowElements = documentFields.ToArray(),
-                SendMethodType = Enums.SendMethodType.QueuedFlow,//TODO: get by CreateTemplateInformation
-                SenderKey = new ParticipantKey<ParticipantKeyType>  
-                {
-                    Type = ParticipantKeyType.UserEmail,
-                    Key = createTemplateInformation.SenderEmail
-                },
-                TemplateType = TemplateType.Standard,//TODO: get by CreateTemplateInformation
-                Users = createTemplateInformation.Signers.Select((s,index)=>new ExTemplateUser
-                {
-                    UserIndex = index,
-                    FixedSignerKey = GetFixedSignerKey(s)
-                }).ToArray()
-            };
-        }
-
-        private ParticipantKey<ParticipantKeyType> GetFixedSignerKey(SignerInfo signerInfo)
-        {
-            if(!signerInfo.SignerType.HasValue || signerInfo.SignerType.Value != (int)SignerType.Static)
-                return null;
-            
-            if(signerInfo.FixedSigner == null)
-                return null;
-            if(!string.IsNullOrEmpty(signerInfo.FixedSigner.Email))
-            {
-                return new ParticipantKey<ParticipantKeyType>
-                {
-                    Type = ParticipantKeyType.UserEmail,
-                    Key = signerInfo.FixedSigner.Email
-                };
-            }
-            else if(!string.IsNullOrEmpty(signerInfo.FixedSigner.PhoneNumber))
-            {
-                return new ParticipantKey<ParticipantKeyType>
-                {
-                    Type = ParticipantKeyType.UserPhone,
-                    Key = signerInfo.FixedSigner.PhoneNumber
-                };
-            }
-            return null;
-        }
+       
     }
 }

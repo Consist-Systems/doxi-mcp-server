@@ -3,7 +3,7 @@ namespace Consist.GPTDataExtruction.Model
 {
     public class CreateTemplateInformation
     {
-        public string? Name { get; set; }
+        public string? TemplateName { get; set; }
 
         public string? SenderEmail { get; set; }
 
@@ -24,8 +24,6 @@ namespace Consist.GPTDataExtruction.Model
     {
         public string? Email { get; set; }
         public string? PhoneNumber { get; set; }
-        public string? FirstName { get; set; }
-        public string? LastName { get; set; }
     }
 
 }

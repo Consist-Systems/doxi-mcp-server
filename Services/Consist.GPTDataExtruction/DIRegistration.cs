@@ -9,7 +9,10 @@ namespace Consist.GPTDataExtruction
         {
             services.Configure(config);
             services.AddSingleton(resolver => resolver.GetRequiredService<IOptions<GPTDataExtructionConfiguration>>().Value);
-            services.AddSingleton<IGPTDataExtractionClient, GPTDataExtractionClient>();
+            services.AddSingleton<IAIModelDataExtractionClient, GPTDataExtractionClient>();
+            services.AddSingleton<TemplateExtractorFromPDF>();
+            services.AddSingleton<TemplateExtractorFromText>();
+            
             return services;
         }
     }

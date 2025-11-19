@@ -13,13 +13,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Consist.Doxi.MCPServer.Doma
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Consist.MCPServer.DoxiAPIClient", "Services\Consist.MCPServer.DoxiClient\Consist.MCPServer.DoxiAPIClient.csproj", "{77A0A614-D1BF-49AB-A2FD-38E8AA27833F}"
 EndProject
-Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{81DDED9D-158B-E303-5F62-77A2896D2A5A}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Consist.GPTDataExtruction", "Services\Consist.GPTDataExtruction\Consist.GPTDataExtruction.csproj", "{6DE37C3D-08B9-4F83-964C-272C7D80E0E2}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ApryseDataExtractor", "Services\ApryseDataExtractor\ApryseDataExtractor.csproj", "{1790A735-C6C2-4C0E-B6BA-8BAA968DADEC}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Consist.GPTDataExtruction.Tests", "Tests\Consist.GPTDataExtruction.Tests\Consist.GPTDataExtruction.Tests.csproj", "{1EBD2314-108E-4F10-A562-236287BBB9CA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Consist.PDFConverter", "Services\Consist.PDFConverter\Consist.PDFConverter.csproj", "{344A071C-8EC7-4707-A73F-F3C9CFFBD728}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,10 +39,6 @@ Global
 		{77A0A614-D1BF-49AB-A2FD-38E8AA27833F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{77A0A614-D1BF-49AB-A2FD-38E8AA27833F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{77A0A614-D1BF-49AB-A2FD-38E8AA27833F}.Release|Any CPU.Build.0 = Release|Any CPU
-		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.Release|Any CPU.Build.0 = Release|Any CPU
 		{6DE37C3D-08B9-4F83-964C-272C7D80E0E2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{6DE37C3D-08B9-4F83-964C-272C7D80E0E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6DE37C3D-08B9-4F83-964C-272C7D80E0E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -55,6 +51,10 @@ Global
 		{1EBD2314-108E-4F10-A562-236287BBB9CA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1EBD2314-108E-4F10-A562-236287BBB9CA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1EBD2314-108E-4F10-A562-236287BBB9CA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{344A071C-8EC7-4707-A73F-F3C9CFFBD728}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{344A071C-8EC7-4707-A73F-F3C9CFFBD728}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{344A071C-8EC7-4707-A73F-F3C9CFFBD728}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{344A071C-8EC7-4707-A73F-F3C9CFFBD728}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -64,6 +64,7 @@ Global
 		{6DE37C3D-08B9-4F83-964C-272C7D80E0E2} = {5B6B63F4-083F-4656-86AD-C9D0B7C5192D}
 		{1790A735-C6C2-4C0E-B6BA-8BAA968DADEC} = {5B6B63F4-083F-4656-86AD-C9D0B7C5192D}
 		{1EBD2314-108E-4F10-A562-236287BBB9CA} = {EEFB8D10-5D62-4321-A0B5-88ED51BC32DE}
+		{344A071C-8EC7-4707-A73F-F3C9CFFBD728} = {5B6B63F4-083F-4656-86AD-C9D0B7C5192D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {41A2247B-C888-4223-9953-56395B780951}

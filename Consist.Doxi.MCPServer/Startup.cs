@@ -1,10 +1,13 @@
-﻿using Consist.Doxi.MCPServer.Domain;
+﻿using ApryseDataExtractor;
+using Consist.Doxi.MCPServer.Domain;
 using Consist.GPTDataExtruction;
 using Consist.MCPServer.DoxiAPIClient;
+using Consist.PDFConverter;
 using Consist.ProjectName.Filters;
+using Microsoft.OpenApi.Models;
 using NLog;
 using NLog.Web;
-using ApryseDataExtractor;
+using pdftron.PDF.OCG;
 
 namespace Consist.ProjectName
 {
@@ -52,26 +55,39 @@ namespace Consist.ProjectName
             
 
             services.AddServiceDomain()
-            .AddDoxiAPIClient(options =>
+            .AddDoxiAPIClient(config =>
             {
-                options.IdpURL = Configuration["DoxiAPIClient:IdpURL"];
-                options.DoxiAPIUrl = Configuration["DoxiAPIClient:DoxiAPIUrl"];
+                Configuration.GetSection("DoxiAPIClient").Bind(config);
             })
             .AddGPTDataExtraction(config=>
             {
-                config.ExtractFieldLableToSignerMappingModel = Configuration["GPTDataExtraction:ExtractFieldLableToSignerMappingModel"];
-                config.ExtractTemplateInformationModel = Configuration["GPTDataExtraction:ExtractTemplateInformationModel"];
-                config.GPTAPIKey = Configuration["GPTDataExtraction:GPTAPIKey"];
+                Configuration.GetSection("GPTDataExtraction").Bind(config);
             })
             .AddApryseDataExtractor(config =>
             {
                 config.ApryseApiKey = Configuration["ApryseApiKey"];
+            })
+            .AddPDFConverter(config =>
+            {
+                config.LicenseKey = Configuration["PDFConverter:LicenseKey"];
             });
 
             services.AddMvc(options =>
             {
                 options.Filters.Add(typeof(ErrorHandlingFilterAttribute));
                 options.Filters.Add(typeof(RequestResponseLogAttribute));
+            });
+
+            // Add Swagger/OpenAPI support
+            services.AddEndpointsApiExplorer();
+            services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new OpenApiInfo
+                {
+                    Title = "Doxi MCP Server API",
+                    Version = "v1",
+                    Description = "API for managing document signing flows via the Doxi Sign API"
+                });
             });
 
             // MCP over HTTP, scanning this assembly for [McpServerTool] methods
@@ -94,11 +110,22 @@ namespace Consist.ProjectName
             app.UseRouting();
             app.UseCors();
 
+            // Enable Swagger middleware
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Doxi MCP Server API v1");
+                c.RoutePrefix = "swagger";
+            });
+
             app.UseMiddleware<ResponseTimeMiddleware>();
             app.UseMiddleware<ResponseTraceIdMiddleware>();
 
             app.UseEndpoints(endpoints =>
             {
+                // Map all API controllers
+                endpoints.MapControllers();
+
                 endpoints.MapMcp("/{tenant}/mcp");
 
                 // Serve MCP metadata.json

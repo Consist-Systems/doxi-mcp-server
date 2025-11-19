@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Consist.Doxi.MCPServer.Domain.AILogic;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Consist.Doxi.MCPServer.Domain
 {
@@ -8,6 +9,8 @@ namespace Consist.Doxi.MCPServer.Domain
         {
             services.AddScoped<IContextInformation, ContextInformation>();
             services.AddScoped<DoxiAPIWrapper>();
+            services.AddScoped<TemplateLogic>();
+            
             return services;
         }
 
