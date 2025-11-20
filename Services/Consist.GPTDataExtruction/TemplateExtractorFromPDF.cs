@@ -97,10 +97,10 @@ Use all pages together.";
                     {
                         Title = s.Title ?? string.Empty,
                         SignerType = s.SignerType,
-                        Fields = new List<string>()
+                        Fields = Array.Empty<string>()
                     })
-                    .ToList()
-                    ?? new List<SignerResponseWithFields>()
+                    .ToArray()
+                    ?? Array.Empty<SignerResponseWithFields>()
             };
 
             // Phase 2: for each signer, extract fields for that signer
@@ -126,8 +126,9 @@ Use all pages together.";
                 TemplateName = string.Empty,
                 SendMethodType = null,
                 Languages = string.Empty,
-                Signers = new List<SignerResponse>()
+                Signers = Array.Empty<SignerResponse>()
             };
+            var finalSigners = new List<SignerResponse>();
 
             foreach (var batch in batches)
             {
@@ -153,7 +154,7 @@ Use all pages together.";
                     final.Languages = batchResult.Languages;
                 }
 
-                foreach (var signer in batchResult.Signers ?? new List<SignerResponse>())
+                foreach (var signer in batchResult.Signers ?? Array.Empty<SignerResponse>())
                 {
                     var existing = final.Signers.FirstOrDefault(s =>
                         string.Equals(s.Title, signer.Title, StringComparison.OrdinalIgnoreCase) &&
@@ -161,7 +162,7 @@ Use all pages together.";
 
                     if (existing == null)
                     {
-                        final.Signers.Add(new SignerResponse
+                        finalSigners.Add(new SignerResponse
                         {
                             Title = signer.Title ?? string.Empty,
                             SignerType = signer.SignerType
@@ -169,9 +170,9 @@ Use all pages together.";
                     }
                 }
             }
-
+            final.Signers = finalSigners.ToArray();
             final.TemplateName ??= string.Empty;
-            final.Signers ??= new List<SignerResponse>();
+            final.Signers ??= new SignerResponse[0];
 
             return final;
         }
@@ -180,7 +181,7 @@ Use all pages together.";
 
         #region Phase 2: Fields per signer
 
-        private async Task<List<string>> ExtractFieldsForSignerAsync(List<byte[]> images, string signerTitle)
+        private async Task<string[]> ExtractFieldsForSignerAsync(List<byte[]> images, string signerTitle)
         {
             var batches = Batch(images, _config.TemplateExtractorFromPDFConfig.MaxPagesPerBatch);
             var fields = new HashSet<string>();
@@ -204,7 +205,7 @@ Use all pages together.";
                 }
             }
 
-            return fields.ToList();
+            return fields.ToArray();
         }
 
         private class SignerFieldsDto

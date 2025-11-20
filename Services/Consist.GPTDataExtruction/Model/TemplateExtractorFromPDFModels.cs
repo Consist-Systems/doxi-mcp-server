@@ -1,16 +1,20 @@
-﻿namespace Consist.GPTDataExtruction.Model
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Consist.GPTDataExtruction.Model
 {
     public class TemplateInfoFromPDF
     {
+        [Required]
         public string TemplateName { get; set; }
         public int? SendMethodType { get; set; }
+        [Required]
         public string Languages { get; set; }
-        public List<SignerResponse> Signers { get; set; }
+        public SignerResponse[] Signers { get; set; }
     }
 
     public class TemplateInfoFromPDFwithFields : TemplateInfoFromPDF
     {
-        public new List<SignerResponseWithFields> Signers { get; set; }
+        public new SignerResponseWithFields[] Signers { get; set; }
     }
 
     public class SignerResponse
@@ -21,6 +25,6 @@
 
     public class SignerResponseWithFields : SignerResponse
     {
-        public List<string> Fields { get; set; }
+        public string[] Fields { get; set; }
     }
 }

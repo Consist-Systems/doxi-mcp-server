@@ -8,7 +8,7 @@ public class GPTDataExtractionClient : IAIModelDataExtractionClient
         private readonly IServiceProvider _serviceProvider;
 
         private TemplateExtractorFromPDF GptTemplateExtractionService => _serviceProvider.GetService<TemplateExtractorFromPDF>();
-        private TemplateExtractorFromText TemplateExtractorFromText => _serviceProvider.GetService<TemplateExtractorFromText>();
+        private GenericGptClient GenericGptClient => _serviceProvider.GetService<GenericGptClient>();
 
         public GPTDataExtractionClient(IServiceProvider serviceProvider)
         {
@@ -22,7 +22,7 @@ public class GPTDataExtractionClient : IAIModelDataExtractionClient
 
         public Task<CreateTemplateInformation> ExtractTemplateInformationFromPrompt(string templateInstructions)
         {
-            return TemplateExtractorFromText.ExtractAsync(templateInstructions);
+            return GenericGptClient.RunModelByText<CreateTemplateInformation>(templateInstructions);
         }
     }
 }

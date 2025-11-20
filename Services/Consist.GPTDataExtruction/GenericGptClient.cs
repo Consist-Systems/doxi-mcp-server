@@ -1,34 +1,29 @@
-﻿using Consist.GPTDataExtruction.Extensions;
-using Flurl.Http;
+﻿using Flurl.Http;
 using Microsoft.Extensions.Logging;
-using NJsonSchema;
-using NJsonSchema.Generation;
 using System.Text.Json;
+using Newtonsoft.Json.Schema.Generation;
+using Newtonsoft.Json.Schema;
 
 namespace Consist.GPTDataExtruction
 {
     public class GenericGptClient
     {
         private readonly ILogger<GenericGptClient> _logger;
-        private readonly GPTDataExtructionConfiguration _config;
 
         private string _apiKey;
         private string _currentEndpoint;
         private string _currentModel;
-        private JsonSchemaMode _currentSchemaMode;
 
         public GenericGptClient(
             ILogger<GenericGptClient> logger,
             GPTDataExtructionConfiguration config)
         {
             _logger = logger;
-            _config = config;
 
             // Initialize with default values from config
             _apiKey = config.GPTAPIKey;
             _currentEndpoint = config.DefaultEndpoint;
             _currentModel = config.DefaultModel;
-            _currentSchemaMode = config.DefaultJsonSchemaMode;
         }
 
         /// <summary>
@@ -42,22 +37,17 @@ namespace Consist.GPTDataExtruction
             if (!string.IsNullOrWhiteSpace(endpoint))
                 _currentEndpoint = endpoint;
 
-            if (schemaMode.HasValue)
-                _currentSchemaMode = schemaMode.Value;
 
-            _logger.LogDebug("Model data updated - Model: {Model}, Endpoint: {Endpoint}, SchemaMode: {SchemaMode}",
-                _currentModel, _currentEndpoint, _currentSchemaMode);
+            _logger.LogDebug($"Model data updated - Model: {_currentModel}, Endpoint: {_currentEndpoint}",
+                _currentModel, _currentEndpoint);
         }
 
         /// <summary>
         /// Calls GPT with text input and returns structured JSON response
         /// </summary>
         public async Task<TResponse> RunModelByText<TResponse>(
-            string inputData,
             string instructions) where TResponse : class
         {
-            var schema = GenerateJsonSchema<TResponse>();
-
             var messages = new List<object>
             {
                 new
@@ -65,24 +55,22 @@ namespace Consist.GPTDataExtruction
                     role = "user",
                     content = new object[]
                     {
-                        new { type = "text", text = BuildInstructionWithSchema(instructions, schema) },
-                        new { type = "text", text = inputData }
+                        new { type = "input_text", text = instructions }
                     }
                 }
             };
 
-            return await CallGptAsync<TResponse>(messages.ToArray(), schema);
+            return await CallGptAsync<TResponse>(messages.ToArray());
         }
 
         /// <summary>
         /// Calls GPT with file(s) input (images/PDFs) and returns structured JSON response
-        /// </summary>
+        /// </summary>  
         public async Task<TResponse> RunModelByFiles<TResponse>(
             IEnumerable<byte[]> inputData,
             string instructions,
             string fileType = "image/png") where TResponse : class
         {
-            var schema = GenerateJsonSchema<TResponse>();
 
             var messages = new List<object>
             {
@@ -91,7 +79,7 @@ namespace Consist.GPTDataExtruction
                     role = "user",
                     content = new object[]
                     {
-                        new { type = "text", text = BuildInstructionWithSchema(instructions, schema) }
+                        new { type = "input_text", text = instructions }
                     }
                 }
             };
@@ -105,89 +93,63 @@ namespace Consist.GPTDataExtruction
                     {
                         new
                         {
-                            type = "image_url",
-                            image_url = new { url = $"data:{fileType};base64,{Convert.ToBase64String(file)}" }
+                            type = "input_image",
+                            image_url = $"data:{fileType};base64,{Convert.ToBase64String(file)}"
                         }
                     }
                 });
             }
 
-            return await CallGptAsync<TResponse>(messages.ToArray(), schema);
+            return await CallGptAsync<TResponse>(messages.ToArray());
         }
 
         /// <summary>
         /// Core method that makes the actual GPT API call
         /// </summary>
-        private async Task<TResponse> CallGptAsync<TResponse>(object[] messages, string schema) where TResponse : class
+        private async Task<TResponse> CallGptAsync<TResponse>(object[] messages) where TResponse : class
         {
             try
             {
-                object body;
+                var schema = GenerateJsonSchema<TResponse>();
 
-                if (_currentSchemaMode == JsonSchemaMode.StructuredOutput)
-                {
-                    // Use structured outputs (recommended for GPT-4o and newer)
-                    var schemaJson = JsonSerializer.Deserialize<JsonElement>(schema);
-
-                    body = new
+                var payload = new
                     {
                         model = _currentModel,
-                        messages = messages,
-                        response_format = new
+                        input = messages,
+                        text = new
                         {
-                            type = "json_schema",
-                            json_schema = new
+                            format = new
                             {
-                                name = typeof(TResponse).Name.ToLower() + "_response",
-                                schema = schemaJson,
+                                type = "json_schema",
+                                name = typeof(TResponse).Name,
+                                schema = schema,
                                 strict = true
                             }
                         }
                     };
-                }
-                else
-                {
-                    // Fallback to json_object mode (for older models)
-                    body = new
-                    {
-                        model = _currentModel,
-                        messages = messages,
-                        response_format = new
-                        {
-                            type = "json_object"
-                        }
-                    };
-                }
-
-                _logger.LogDebug("Calling GPT API with model: {Model}, schema mode: {SchemaMode}",
-                    _currentModel, _currentSchemaMode);
+               
+                var payloadStr = JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true });
+                _logger.LogDebug($"GPT Request Payload: {payloadStr}");
 
                 string rawResponse = await _currentEndpoint
-                    .WithHeader("Authorization", $"Bearer {_apiKey}")
+                    .WithHeader("Authorization", $"Bearer {_apiKey}")   
                     .WithHeader("Content-Type", "application/json")
-                    .PostJsonAsync(body)
+                    .PostStringAsync(payloadStr)
                     .ReceiveString();
 
                 using var doc = JsonDocument.Parse(rawResponse);
 
-                var content = doc.RootElement
-                    .GetProperty("choices")[0]
-                    .GetProperty("message")
-                    .GetProperty("content")
-                    .GetString();
+                // Check for error response
+                if (doc.RootElement.TryGetProperty("error", out var errorElement)
+                    && errorElement.ValueKind != JsonValueKind.Null)
+                {
+                    var errorMessage = errorElement.TryGetProperty("message", out var messageProp) 
+                        ? messageProp.GetString() 
+                        : "Unknown error";
+                    throw new Exception($"GPT API returned an error: {errorMessage}");
+                }
 
-                if (string.IsNullOrWhiteSpace(content))
-                    throw new Exception("GPT returned empty content.");
-
-                _logger.LogDebug("GPT Response: {Content}", content);
-
-                var parsed = JsonSerializer.Deserialize<TResponse>(
-                    content,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-                if (parsed == null)
-                    throw new Exception("Failed to deserialize GPT response to the expected type.");
-
+                var parsed = ParseGptResponse<TResponse>(rawResponse);
                 return parsed;
             }
             catch (FlurlHttpException httpEx)
@@ -204,36 +166,104 @@ namespace Consist.GPTDataExtruction
             }
         }
 
-        /// <summary>
-        /// Generates JSON schema for the response type
-        /// </summary>
-        private string GenerateJsonSchema<TResponse>() where TResponse : class
+        public static TResponse ParseGptResponse<TResponse>(string rawResponse)
+    where TResponse : class
         {
-            var schemaNode = JsonSchema.FromType<TResponse>().ToOpenAISchemaNode<TResponse>();
-            return schemaNode.ToJsonString();
+            using var doc = JsonDocument.Parse(rawResponse);
+
+            // Navigate to: output[0].content[0].text
+            var output = doc.RootElement.GetProperty("output");
+
+            if (output.GetArrayLength() == 0)
+                throw new Exception("GPT response has no output.");
+
+            var message = output[0];
+
+            var contentArray = message.GetProperty("content");
+            if (contentArray.GetArrayLength() == 0)
+                throw new Exception("No content in GPT response.");
+
+            var contentItem = contentArray[0];
+
+            var jsonText = contentItem.GetProperty("text").GetString();
+
+            if (string.IsNullOrWhiteSpace(jsonText))
+                throw new Exception("GPT response text is empty.");
+
+            // Parse the JSON string inside "text"
+            return JsonSerializer.Deserialize<TResponse>(
+                jsonText,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+            )!;
         }
 
-        /// <summary>
-        /// Combines user instructions with JSON schema requirements
-        /// </summary>
-        private string BuildInstructionWithSchema(string instructions, string jsonSchema)
+
+        private JsonElement GenerateJsonSchema<TResponse>() where TResponse : class
         {
-            if (_currentSchemaMode == JsonSchemaMode.StructuredOutput)
+            var generator = new JSchemaGenerator
             {
-                // Schema is enforced via response_format, no need in prompt
-                return instructions;
-            }
-            else
-            {
-                // Include schema in prompt for json_object mode
-                return $@"{instructions}
+                SchemaReferenceHandling = SchemaReferenceHandling.None
+            };
 
-You MUST return a valid JSON response that matches this exact schema:
+            JSchema schema = generator.Generate(typeof(TResponse));
 
-{jsonSchema}
+            // Root must always be an object (OpenAI requirement)
+            if (!schema.Type.HasValue)
+                schema.Type = JSchemaType.Object;
 
-Return ONLY valid JSON that conforms to this schema, with no additional text or explanation.";
-            }
+            // Also apply additionalProperties:false recursively
+            ApplyNoAdditionalProperties(schema);
+
+            string json = schema.ToString();
+            using var doc = JsonDocument.Parse(json);
+            return doc.RootElement.Clone();
         }
+
+
+        private void ApplyNoAdditionalProperties(JSchema schema)
+        {
+            // If this schema is an object: forbid additional properties
+            if (schema.Type.HasValue && schema.Type.Value.HasFlag(JSchemaType.Object))
+            {
+                schema.AllowAdditionalProperties = false;
+            }
+
+            // Process properties (object fields)
+            foreach (var kv in schema.Properties)
+            {
+                ApplyNoAdditionalProperties(kv.Value);
+            }
+
+            // Process array items
+            if (schema.Items != null)
+            {
+                foreach (var item in schema.Items)
+                {
+                    ApplyNoAdditionalProperties(item);
+                }
+            }
+
+            // AdditionalItems (for arrays) 
+            if (schema.AdditionalItems != null)
+            {
+                ApplyNoAdditionalProperties(schema.AdditionalItems);
+            }
+
+            // Process union types
+            if (schema.AnyOf != null)
+                foreach (var s in schema.AnyOf)
+                    ApplyNoAdditionalProperties(s);
+
+            if (schema.OneOf != null)
+                foreach (var s in schema.OneOf)
+                    ApplyNoAdditionalProperties(s);
+
+            if (schema.AllOf != null)
+                foreach (var s in schema.AllOf)
+                    ApplyNoAdditionalProperties(s);
+        }
+
+
+
     }
 }

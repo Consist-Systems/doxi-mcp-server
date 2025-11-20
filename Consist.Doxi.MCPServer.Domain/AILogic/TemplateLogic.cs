@@ -63,7 +63,7 @@ namespace Consist.Doxi.MCPServer.Domain.AILogic
             if (templateInformationFromPrompt == null)
                 templateInformationFromPrompt = new CreateTemplateInformation();
 
-            var result =  new ExAddTemplateRequest
+            var result = new ExAddTemplateRequest
             {
                 DocumentFileName = "tempalte.pdf",
                 Base64DocumentFile = Convert.ToBase64String(templateDocument),
@@ -81,7 +81,7 @@ namespace Consist.Doxi.MCPServer.Domain.AILogic
             };
 
             var signers = GetSigners(templateInformationFromPrompt, templateInformationFromPDF);
-            result.Users = signers.Select((s,index) => new ExTemplateUser
+            result.Users = signers.Select((s, index) => new ExTemplateUser
             {
                 UserIndex = index,
                 Title = s.Title,
@@ -112,13 +112,13 @@ namespace Consist.Doxi.MCPServer.Domain.AILogic
 
         private IEnumerable<SignerData> GetSigners(CreateTemplateInformation templateInformationFromPrompt, TemplateInfoFromPDFwithFields templateInformationFromPDF)
         {
-            if (templateInformationFromPrompt.Signers!= null && templateInformationFromPrompt.Signers.Any())
+            if (templateInformationFromPrompt.Signers != null && templateInformationFromPrompt.Signers.Any())
             {
                 var signersFromPromptResult = new List<SignerData>();
                 foreach (var signer in templateInformationFromPrompt.Signers)
                 {
                     var signerFromPDFInfo = templateInformationFromPDF.Signers.FirstOrDefault(s => s.Title == signer.Title);
-                    if(signerFromPDFInfo != null)
+                    if (signerFromPDFInfo != null)
                     {
                         var fixedSignerKey = GetFixedSignerKey(signer);
                         signersFromPromptResult.Add(new SignerData
@@ -129,12 +129,12 @@ namespace Consist.Doxi.MCPServer.Domain.AILogic
                             FixedSignerKey = fixedSignerKey
                         });
                     }
-                } 
-                if(signersFromPromptResult.Any())
+                }
+                if (signersFromPromptResult.Any())
                     return signersFromPromptResult;
             }
-            
-            return templateInformationFromPDF.Signers.Select(s=> SignerData.ConvertToSignerData(s));
+
+            return templateInformationFromPDF.Signers.Select(s => SignerData.ConvertToSignerData(s));
         }
 
         class SignerData : SignerResponseWithFields
