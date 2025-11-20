@@ -13,16 +13,17 @@ namespace Consist.GPTDataExtruction
         // Phase 1: extract structure only (no fields)
         private const string STRUCTURE_INSTRUCTION = @"
 Return ONLY valid JSON:
-{""TemplateName"":"""",""SendMethodType"":0,""Signers"":[{""Title"":"""",""SignerType"":0}]}
+{""TemplateName"":"""",""SendMethodType"":0,""Languages"":"""",""Signers"":[{""Title"":"""",""SignerType"":0}]}
 
 SendMethodType: 0=QueuedFlow,1=ParallelFlow
 SignerType: 0=Changeable,1=Static,2=Anonymous
 
-TemplateName = the main title of the form, taken from:
-- the top page header, or
-- the largest or boldest text describing the form purpose.
+TemplateName = the main title of the form (top header or boldest text).
 
-Always extract a title. If multiple candidates exist, choose the one most likely to be the form name.
+Languages = detect ALL languages appearing in the document.
+Return a space-separated list of language codes (ISO 639-1). Example: ""he en"".
+If multiple languages appear in text on any page, include all of them.
+Do not return words, only language codes.
 
 Identify ALL signers in the document. A signer = any role that must review, approve, sign, or complete part of the form.
 
@@ -34,6 +35,7 @@ Do NOT include any field labels in this response.
 Use all pages together.
 JSON only, no extra text.
 ";
+
 
 
         // Phase 2: extract fields for a specific signer
@@ -95,11 +97,13 @@ JSON only, no extra text.
             {
                 TemplateName = structure.TemplateName ?? string.Empty,
                 SendMethodType = structure.SendMethodType,
+                Languages = structure.Languages ?? string.Empty,
                 Signers = structure.Signers?
                     .Select(s => new SignerResponseWithFields
                     {
                         Title = s.Title ?? string.Empty,
                         SignerType = s.SignerType,
+                        
                         Fields = new List<string>()
                     })
                     .ToList()
@@ -128,6 +132,7 @@ JSON only, no extra text.
             {
                 TemplateName = string.Empty,
                 SendMethodType = null,
+                Languages = string.Empty,
                 Signers = new List<SignerResponse>()
             };
 
@@ -144,6 +149,12 @@ JSON only, no extra text.
                 if (!final.SendMethodType.HasValue && batchResult.SendMethodType.HasValue)
                 {
                     final.SendMethodType = batchResult.SendMethodType;
+                }
+
+                if (string.IsNullOrWhiteSpace(final.Languages) &&
+                    !string.IsNullOrWhiteSpace(batchResult.Languages))
+                {
+                    final.Languages = batchResult.Languages;
                 }
 
                 foreach (var signer in batchResult.Signers)

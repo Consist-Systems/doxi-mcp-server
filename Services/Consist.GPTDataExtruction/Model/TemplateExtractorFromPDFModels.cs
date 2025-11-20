@@ -4,6 +4,7 @@
     {
         public string TemplateName { get; set; }
         public int? SendMethodType { get; set; }
+        public string Languages { get; set; }
         public List<SignerResponse> Signers { get; set; }
     }
 

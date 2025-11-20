@@ -14,19 +14,35 @@ namespace ApryseDataExtractor
             PDFNet.Initialize(config.ApryseApiKey);
         }
 
-        public async Task<IEnumerable<ExTemplatFlowElement>> GetDocumentElements(byte[] documentBytes)
+        public async Task<IEnumerable<ExTemplatFlowElement>> GetDocumentElements(
+            byte[] documentBytes,
+            string languages)
         {
             var tempFilePath = Path.GetTempFileName().Replace(".tmp", ".pdf");
             File.WriteAllBytes(tempFilePath, documentBytes);
+
             try
             {
+                DataExtractionOptions options = new DataExtractionOptions();
+                options.SetLanguage(languages);
+
                 var documentFieldsPositionJson =
-                    DataExtractionModule.ExtractData(tempFilePath, DataExtractionModule.DataExtractionEngine.e_form);
-                var documentFieldsPosition = JsonConvert.DeserializeObject<DocumentFieldsPosition>(documentFieldsPositionJson);
+                    DataExtractionModule.ExtractData(
+                        tempFilePath,
+                        DataExtractionModule.DataExtractionEngine.e_form,
+                        options);
+
+                var documentFieldsPosition =
+                    JsonConvert.DeserializeObject<DocumentFieldsPosition>(documentFieldsPositionJson);
 
                 var documentStructureJson =
-                    DataExtractionModule.ExtractData(tempFilePath, DataExtractionModule.DataExtractionEngine.e_doc_structure);
-                var documentStructure = JsonConvert.DeserializeObject<DocumentStructure>(documentStructureJson);
+                    DataExtractionModule.ExtractData(
+                        tempFilePath,
+                        DataExtractionModule.DataExtractionEngine.e_doc_structure,
+                        options);
+
+                var documentStructure =
+                    JsonConvert.DeserializeObject<DocumentStructure>(documentStructureJson);
 
                 return GetMatchFieldToLabel(documentFieldsPosition, documentStructure);
             }
@@ -38,6 +54,9 @@ namespace ApryseDataExtractor
         }
 
 
+        // --------------------------------------------------------------------
+        // MATCH FIELD TO LABEL
+        // --------------------------------------------------------------------
         private IEnumerable<ExTemplatFlowElement> GetMatchFieldToLabel(
             DocumentFieldsPosition? documentFieldsPosition,
             DocumentStructure? documentStructure)
@@ -52,9 +71,9 @@ namespace ApryseDataExtractor
         }
 
 
-        // ---------------------------------------------
+        // --------------------------------------------------------------------
         // EXTRACT TEXT BLOCKS
-        // ---------------------------------------------
+        // --------------------------------------------------------------------
         private List<TextBlock> ExtractTextBlocks(DocumentStructure documentStructure)
         {
             var textBlocks = new List<TextBlock>();
@@ -65,6 +84,7 @@ namespace ApryseDataExtractor
             foreach (var page in documentStructure.Pages)
             {
                 var pageNumber = page.Properties?.PageNumber ?? 0;
+
                 if (page.Elements == null)
                     continue;
 
@@ -116,7 +136,7 @@ namespace ApryseDataExtractor
             {
                 textBlocks.Add(new TextBlock
                 {
-                    Text = node.Text.Trim(),
+                    Text = node.Text.Trim().FixRtl(),   // ← APPLY RTL FIX
                     X1 = node.Rect[0],
                     Y1 = node.Rect[1],
                     X2 = node.Rect[2],
@@ -149,9 +169,9 @@ namespace ApryseDataExtractor
         }
 
 
-        // ---------------------------------------------
-        // EXTRACT FIELD RECTANGLES
-        // ---------------------------------------------
+        // --------------------------------------------------------------------
+        // FIELD RECTANGLES
+        // --------------------------------------------------------------------
         private List<FieldRectangle> ExtractFieldRectangles(DocumentFieldsPosition documentFieldsPosition)
         {
             var result = new List<FieldRectangle>();
@@ -180,7 +200,7 @@ namespace ApryseDataExtractor
                         X2 = rect[2],
                         Y2 = rect[3],
                         PageNumber = pageNumber,
-                        FieldType = formElement.Type   // NEW
+                        FieldType = formElement.Type
                     });
                 }
             }
@@ -189,16 +209,18 @@ namespace ApryseDataExtractor
         }
 
 
-        // ---------------------------------------------
+        // --------------------------------------------------------------------
         // MATCH FIELD → LABEL
-        // ---------------------------------------------
+        // --------------------------------------------------------------------
         private ExTemplatFlowElement MatchFieldToLabel(FieldRectangle field, List<TextBlock> textBlocks)
         {
             var samePage = textBlocks.Where(tb => tb.PageNumber == field.PageNumber).ToList();
+
             if (samePage.Count == 0)
                 return CreateElement(field, field.FieldType, null);
 
             var overlapping = samePage.Where(tb => OverlapsVertically(field, tb)).ToList();
+
             if (overlapping.Count == 0)
                 return CreateElement(field, field.FieldType, null);
 
@@ -206,13 +228,12 @@ namespace ApryseDataExtractor
             var candidates = rightSide.Any() ? rightSide : overlapping;
 
             var valid = candidates
-                .Where(tb => !string.IsNullOrWhiteSpace(tb.Text) && !IsPunctuationOnly(tb.Text))
+                .Where(tb => !string.IsNullOrWhiteSpace(tb.Text)
+                             && !IsPunctuationOnly(tb.Text))
                 .ToList();
 
             if (!valid.Any())
-            {
                 valid = candidates.Where(tb => !string.IsNullOrWhiteSpace(tb.Text)).ToList();
-            }
 
             if (!valid.Any())
                 return CreateElement(field, field.FieldType, null);
@@ -223,9 +244,9 @@ namespace ApryseDataExtractor
         }
 
 
-        // ---------------------------------------------
+        // --------------------------------------------------------------------
         // HELPERS
-        // ---------------------------------------------
+        // --------------------------------------------------------------------
         private bool OverlapsVertically(FieldRectangle field, TextBlock text)
         {
             float overlap = Math.Min(field.Y2, text.Y2) - Math.Max(field.Y1, text.Y1);
@@ -251,16 +272,13 @@ namespace ApryseDataExtractor
             return text.Trim().All(c => char.IsPunctuation(c));
         }
 
-
-        // ---------------------------------------------
-        // CREATE ELEMENT WITH TYPE MAPPING
-        // ---------------------------------------------
-        private ExTemplatFlowElement CreateElement(FieldRectangle field, string? fieldType, string? label)
+        private ExTemplatFlowElement CreateElement(FieldRectangle field, string fieldType, string? label)
         {
             return new ExTemplatFlowElement
             {
                 ElementId = Guid.NewGuid().ToString(),
                 PageNumber = field.PageNumber,
+
                 Position = new ElementPosition
                 {
                     Left = field.X1,
@@ -268,8 +286,9 @@ namespace ApryseDataExtractor
                     Width = field.X2 - field.X1,
                     Height = field.Y2 - field.Y1
                 },
+
                 ElementLabel = label,
-                ElementType = MapElementType(fieldType) 
+                ElementType = MapElementType(fieldType)
             };
         }
 
@@ -285,9 +304,9 @@ namespace ApryseDataExtractor
         }
 
 
-        // ---------------------------------------------
-        // INTERNAL MODEL CLASSES
-        // ---------------------------------------------
+        // --------------------------------------------------------------------
+        // INTERNAL MODELS
+        // --------------------------------------------------------------------
         private class FieldRectangle
         {
             public float X1 { get; set; }
@@ -295,8 +314,7 @@ namespace ApryseDataExtractor
             public float X2 { get; set; }
             public float Y2 { get; set; }
             public int PageNumber { get; set; }
-
-            public string FieldType { get; set; } // NEW
+            public string FieldType { get; set; }
         }
 
         private class TextBlock

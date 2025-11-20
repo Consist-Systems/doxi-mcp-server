@@ -32,9 +32,13 @@ namespace Consist.Doxi.MCPServer.Domain.AILogic
         {
             CreateTemplateInformation templateInformationFromPrompt=null;
             if (!string.IsNullOrWhiteSpace(templateInstructions))
-                 templateInformationFromPrompt = await _aIModelDataExtractionClient.ExtractTemplateInformationFromPrompt(templateInstructions);
+                templateInformationFromPrompt = new CreateTemplateInformation
+                {
+                    SenderEmail = "ronenr@consist.co.il"
+                };
+            //templateInformationFromPrompt = await _aIModelDataExtractionClient.ExtractTemplateInformationFromPrompt(templateInstructions);
             var templateInformationFromPDF = await _aIModelDataExtractionClient.ExtractTemplateInformationFromPDF(templateDocument);
-            var documentFields = await _documentFieldExtractor.GetDocumentElements(templateDocument);
+            var documentFields = await _documentFieldExtractor.GetDocumentElements(templateDocument, templateInformationFromPDF.Languages);
 
             var exAddTemplateRequest = GetExAddTemplateRequest(templateInformationFromPrompt, templateInformationFromPDF, documentFields, templateDocument);
             var doxiClient = GetDoxiClient(username, password);
@@ -56,36 +60,98 @@ namespace Consist.Doxi.MCPServer.Domain.AILogic
 
         private ExAddTemplateRequest GetExAddTemplateRequest(CreateTemplateInformation templateInformationFromPrompt, TemplateInfoFromPDFwithFields templateInformationFromPDF, IEnumerable<ExTemplatFlowElement> documentFields, byte[] templateDocument)
         {
-            return null;
-            //var signers = createTemplateInformation.Signers.ToArray();
-            //return new ExAddTemplateRequest
-            //{
-            //    DocumentFileName = "tempalte.pdf",
-            //    Base64DocumentFile = Convert.ToBase64String(templateDocument),
-            //    TemplateName = templateInformationFromPrompt.TemplateName ?? templateInformationFromPDF.TemplateName,
-            //    FlowElements = documentFields.ToArray(),
-            //    SendMethodType = (SendMethodType)templateInformationFromPrompt.SendMethodType
-            //                        .GetValueOrDefault(
-            //                            templateInformationFromPDF.SendMethodType
-            //                                .GetValueOrDefault(0)
-            //                        ),
-            //    SenderKey = new ParticipantKey<ParticipantKeyType>
-            //    {
-            //        Type = ParticipantKeyType.UserEmail,
-            //        Key = createTemplateInformation.SenderEmail
-            //    },
-            //    TemplateType = TemplateType.Standard,//TODO: get by CreateTemplateInformation
-            //    Users = createTemplateInformation.Signers.Select((s, index) => new ExTemplateUser
-            //    {
-            //        UserIndex = index,
-            //        FixedSignerKey = GetFixedSignerKey(s)
-            //    }).ToArray()
-            //};
+            if (templateInformationFromPrompt == null)
+                templateInformationFromPrompt = new CreateTemplateInformation();
+
+            var result =  new ExAddTemplateRequest
+            {
+                DocumentFileName = "tempalte.pdf",
+                Base64DocumentFile = Convert.ToBase64String(templateDocument),
+                TemplateName = templateInformationFromPrompt.TemplateName ?? templateInformationFromPDF.TemplateName,
+                SendMethodType = (SendMethodType)templateInformationFromPrompt.SendMethodType
+                                    .GetValueOrDefault(
+                                        templateInformationFromPDF.SendMethodType
+                                            .GetValueOrDefault(0)
+                                    ),
+                SenderKey = new ParticipantKey<ParticipantKeyType>
+                {
+                    Type = ParticipantKeyType.UserEmail,
+                    Key = templateInformationFromPrompt.SenderEmail
+                }
+            };
+
+            var signers = GetSigners(templateInformationFromPrompt, templateInformationFromPDF);
+            result.Users = signers.Select((s,index) => new ExTemplateUser
+            {
+                UserIndex = index,
+                Title = s.Title,
+                SignerType = (SignerType)s.SignerType.GetValueOrDefault(0),
+                FixedSignerKey = GetFixedSignerKey(templateInformationFromPrompt?.Signers?.FirstOrDefault(si => si.Title == s.Title)),
+            }).ToArray();
+            result.FlowElements = GetAddTemplateRequestFlowElements(documentFields, signers).ToArray();
+
+            return result;
+        }
+
+        private IEnumerable<ExTemplatFlowElement> GetAddTemplateRequestFlowElements(IEnumerable<ExTemplatFlowElement> documentFields, IEnumerable<SignerData> signers)
+        {
+            for (int signerIndex = 0; signerIndex < signers.Count(); signerIndex++)
+            {
+                var signer = signers.ElementAt(signerIndex);
+                foreach (var field in signer.Fields)
+                {
+                    var documentField = documentFields.FirstOrDefault(df => df.ElementLabel == field);
+                    if (documentField != null)
+                    {
+                        documentField.UserIndex = signerIndex;
+                        yield return documentField;
+                    }
+                }
+            }
+        }
+
+        private IEnumerable<SignerData> GetSigners(CreateTemplateInformation templateInformationFromPrompt, TemplateInfoFromPDFwithFields templateInformationFromPDF)
+        {
+            if (templateInformationFromPrompt.Signers!= null && templateInformationFromPrompt.Signers.Any())
+            {
+                var signersFromPromptResult = new List<SignerData>();
+                foreach (var signer in templateInformationFromPrompt.Signers)
+                {
+                    var signerFromPDFInfo = templateInformationFromPDF.Signers.FirstOrDefault(s => s.Title == signer.Title);
+                    if(signerFromPDFInfo != null)
+                    {
+                        var fixedSignerKey = GetFixedSignerKey(signer);
+                        signersFromPromptResult.Add(new SignerData
+                        {
+                            Title = signer.Title,
+                            SignerType = signer.SignerType,
+                            Fields = signerFromPDFInfo.Fields,
+                            FixedSignerKey = fixedSignerKey
+                        });
+                    }
+                } 
+                if(signersFromPromptResult.Any())
+                    return signersFromPromptResult;
+            }
+            
+            return templateInformationFromPDF.Signers.Select(s=> SignerData.ConvertToSignerData(s));
+        }
+
+        class SignerData : SignerResponseWithFields
+        {
+            public ParticipantKey<ParticipantKeyType> FixedSignerKey { get; set; }
+
+            public static SignerData ConvertToSignerData(SignerResponseWithFields src)
+            {
+                var json = JsonConvert.SerializeObject(src);
+                var result = JsonConvert.DeserializeObject<SignerData>(json);
+                return result;
+            }
         }
 
         private ParticipantKey<ParticipantKeyType> GetFixedSignerKey(SignerInfo signerInfo)
         {
-            if (!signerInfo.SignerType.HasValue || signerInfo.SignerType.Value != (int)SignerType.Static)
+            if (signerInfo == null || !signerInfo.SignerType.HasValue || signerInfo.SignerType.Value != (int)SignerType.Static)
                 return null;
 
             if (signerInfo.FixedSigner == null)

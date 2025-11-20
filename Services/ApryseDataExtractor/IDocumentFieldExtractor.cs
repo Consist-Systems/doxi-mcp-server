@@ -4,6 +4,6 @@ namespace ApryseDataExtractor
 {
     public interface IDocumentFieldExtractor
     {
-        Task<IEnumerable<ExTemplatFlowElement>> GetDocumentElements(byte[] documentBytes);
+        Task<IEnumerable<ExTemplatFlowElement>> GetDocumentElements(byte[] documentBytes, string languages);
     }
 }
