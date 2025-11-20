@@ -98,13 +98,18 @@ namespace Consist.Doxi.MCPServer.Domain.AILogic
             for (int signerIndex = 0; signerIndex < signers.Count(); signerIndex++)
             {
                 var signer = signers.ElementAt(signerIndex);
-                foreach (var field in signer.Fields)
+
+                foreach (var field in documentFields)
                 {
-                    var documentField = documentFields.FirstOrDefault(df => df.ElementLabel == field);
-                    if (documentField != null)
+                    if (signer.Fields.Contains(field.ElementLabel))
                     {
-                        documentField.UserIndex = signerIndex;
-                        yield return documentField;
+                        field.UserIndex = signerIndex;
+                        yield return field;
+                    }
+                    else //field not found
+                    {
+                        field.UserIndex = 0;
+                        yield return field;
                     }
                 }
             }

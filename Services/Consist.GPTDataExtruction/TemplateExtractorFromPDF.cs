@@ -16,8 +16,8 @@ Analyze the document and extract the template structure.
 TemplateName = the main title of the form (top header or boldest text).
 
 SendMethodType: Use these values:
-- 0 = QueuedFlow
-- 1 = ParallelFlow
+- 0 = QueuedFlow - siner one sign then the next
+- 1 = ParallelFlow - all signers sign at the same time - must have multiple signers
 
 Languages = detect ALL languages appearing in the document.
 Return a space-separated list of language codes (ISO 639-1). Example: ""he en"".
@@ -29,9 +29,10 @@ Identify ALL signers in the document. A signer = any role that must review, appr
 For each signer:
 - Title: role name as shown in the document
 - SignerType: Use these enum values:
-  * 0 = Changeable
-  * 1 = Static
-  * 2 = Anonymous
+  * 0 = Changeable - can be assigned to any user at sending time
+  * 1 = Static - must be assigned to a specific user
+  * 2 = Anonymous - the signer enter url to sign without identification
+at least one signer must be set
 
 Do NOT include any field labels in this response.
 Use all pages together.";
