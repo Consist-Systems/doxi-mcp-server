@@ -1,7 +1,6 @@
 ﻿using System.Text.Json;
 using Consist.GPTDataExtruction.Model;
 using Consist.PDFConverter;
-using Flurl.Http;
 using Microsoft.Extensions.Logging;
 
 namespace Consist.GPTDataExtruction
@@ -12,13 +11,13 @@ namespace Consist.GPTDataExtruction
 
         // Phase 1: extract structure only (no fields)
         private const string STRUCTURE_INSTRUCTION = @"
-Return ONLY valid JSON:
-{""TemplateName"":"""",""SendMethodType"":0,""Languages"":"""",""Signers"":[{""Title"":"""",""SignerType"":0}]}
-
-SendMethodType: 0=QueuedFlow,1=ParallelFlow
-SignerType: 0=Changeable,1=Static,2=Anonymous
+Analyze the document and extract the template structure.
 
 TemplateName = the main title of the form (top header or boldest text).
+
+SendMethodType: Use these values:
+- 0 = QueuedFlow
+- 1 = ParallelFlow
 
 Languages = detect ALL languages appearing in the document.
 Return a space-separated list of language codes (ISO 639-1). Example: ""he en"".
@@ -27,24 +26,19 @@ Do not return words, only language codes.
 
 Identify ALL signers in the document. A signer = any role that must review, approve, sign, or complete part of the form.
 
-For each signer return:
+For each signer:
 - Title: role name as shown in the document
-- SignerType: enum value (0,1,2)
+- SignerType: Use these enum values:
+  * 0 = Changeable
+  * 1 = Static
+  * 2 = Anonymous
 
 Do NOT include any field labels in this response.
-Use all pages together.
-JSON only, no extra text.
-";
-
-
+Use all pages together.";
 
         // Phase 2: extract fields for a specific signer
         private const string FIELDS_INSTRUCTION_TEMPLATE = @"
-Return ONLY valid JSON:
-{{""Fields"":[]}}
-
-
-Signer role: ""{0}""
+Analyze the document for the specific signer role: ""{0}""
 
 List ALL field labels this signer must complete in the document.
 A field label = any titled element that requires this signer to provide input, write, sign, select, approve, or respond.
@@ -62,25 +56,25 @@ Do NOT include:
 - checkbox/radio items
 - descriptive text
 
-Use all pages together.
-JSON only, no extra text.
-";
-
+Use all pages together.";
 
         #endregion
 
         private readonly ILogger<TemplateExtractorFromPDF> _logger;
         private readonly GPTDataExtructionConfiguration _config;
         private readonly IDocumentConverter _documentConverter;
+        private readonly GenericGptClient _gptClient;
 
         public TemplateExtractorFromPDF(
             ILogger<TemplateExtractorFromPDF> logger,
             GPTDataExtructionConfiguration config,
-            IDocumentConverter documentConverter)
+            IDocumentConverter documentConverter,
+            GenericGptClient gptClient)
         {
             _logger = logger;
             _config = config;
             _documentConverter = documentConverter;
+            _gptClient = gptClient;
         }
 
         public async Task<TemplateInfoFromPDFwithFields> ExtractAsync(byte[] pdfBytes)
@@ -103,7 +97,6 @@ JSON only, no extra text.
                     {
                         Title = s.Title ?? string.Empty,
                         SignerType = s.SignerType,
-                        
                         Fields = new List<string>()
                     })
                     .ToList()
@@ -138,8 +131,11 @@ JSON only, no extra text.
 
             foreach (var batch in batches)
             {
-                var batchResult = await CallGptForStructureBatch(batch);
+                var batchResult = await _gptClient.RunModelByFiles<TemplateInfoFromPDF>(
+                    batch,
+                    STRUCTURE_INSTRUCTION);
 
+                // Merge results
                 if (string.IsNullOrWhiteSpace(final.TemplateName) &&
                     !string.IsNullOrWhiteSpace(batchResult.TemplateName))
                 {
@@ -157,7 +153,7 @@ JSON only, no extra text.
                     final.Languages = batchResult.Languages;
                 }
 
-                foreach (var signer in batchResult.Signers)
+                foreach (var signer in batchResult.Signers ?? new List<SignerResponse>())
                 {
                     var existing = final.Signers.FirstOrDefault(s =>
                         string.Equals(s.Title, signer.Title, StringComparison.OrdinalIgnoreCase) &&
@@ -180,98 +176,6 @@ JSON only, no extra text.
             return final;
         }
 
-        private async Task<TemplateInfoFromPDF> CallGptForStructureBatch(List<byte[]> images)
-        {
-            try
-            {
-                var body = new
-                {
-                    model = _config.TemplateExtractorFromPDFConfig.Model,
-                    messages = BuildStructureMessages(images),
-                    response_format = new
-                    {
-                        type = "json_object"
-                    }
-                };
-
-                string rawResponse = await _config.TemplateExtractorFromPDFConfig.Endpoint
-                    .WithHeader("Authorization", $"Bearer {_config.GPTAPIKey}")
-                    .WithHeader("Content-Type", "application/json")
-                    .PostJsonAsync(body)
-                    .ReceiveString();
-
-                using var doc = JsonDocument.Parse(rawResponse);
-
-                var content = doc.RootElement
-                    .GetProperty("choices")[0]
-                    .GetProperty("message")
-                    .GetProperty("content")
-                    .GetString();
-
-                if (string.IsNullOrWhiteSpace(content))
-                    throw new Exception("GPT returned empty content for structure.");
-
-                var parsed = JsonSerializer.Deserialize<TemplateInfoFromPDF>(
-                    content,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-                if (parsed == null)
-                    throw new Exception("Parsed GPT structure content is null.");
-
-                parsed.TemplateName ??= string.Empty;
-                parsed.Signers ??= new List<SignerResponse>();
-
-                foreach (var signer in parsed.Signers)
-                {
-                    signer.Title ??= string.Empty;
-                }
-
-                return parsed;
-            }
-            catch (FlurlHttpException httpEx)
-            {
-                string errorBody = await httpEx.GetResponseStringAsync();
-                throw new Exception($"GPT API (structure) returned HTTP {(int?)httpEx.StatusCode}: {errorBody}");
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"GPT structure processing failed: {ex.Message}");
-            }
-        }
-
-        private object[] BuildStructureMessages(List<byte[]> images)
-        {
-            var messages = new List<object>
-            {
-                new
-                {
-                    role = "user",
-                    content = new object[]
-                    {
-                        new { type = "text", text = STRUCTURE_INSTRUCTION }
-                    }
-                }
-            };
-
-            foreach (var img in images)
-            {
-                messages.Add(new
-                {
-                    role = "user",
-                    content = new object[]
-                    {
-                        new
-                        {
-                            type = "image_url",
-                            image_url = new { url = $"data:image/png;base64,{Convert.ToBase64String(img)}" }
-                        }
-                    }
-                });
-            }
-
-            return messages.ToArray();
-        }
-
         #endregion
 
         #region Phase 2: Fields per signer
@@ -283,7 +187,13 @@ JSON only, no extra text.
 
             foreach (var batch in batches)
             {
-                var dto = await CallGptForFieldsBatch(batch, signerTitle);
+                var instruction = string.Format(FIELDS_INSTRUCTION_TEMPLATE, signerTitle);
+
+                var dto = await _gptClient.RunModelByFiles<SignerFieldsDto>(
+                    batch,
+                    instruction,
+                    "image/png");
+
                 if (dto?.Fields == null)
                     continue;
 
@@ -295,93 +205,6 @@ JSON only, no extra text.
             }
 
             return fields.ToList();
-        }
-
-        private async Task<SignerFieldsDto> CallGptForFieldsBatch(List<byte[]> images, string signerTitle)
-        {
-            try
-            {
-                var instruction = string.Format(FIELDS_INSTRUCTION_TEMPLATE, signerTitle);
-
-                var body = new
-                {
-                    model = _config.TemplateExtractorFromPDFConfig.Model,
-                    messages = BuildFieldsMessages(images, instruction),
-                    response_format = new
-                    {
-                        type = "json_object"
-                    }
-                };
-
-                string rawResponse = await _config.TemplateExtractorFromPDFConfig.Endpoint
-                    .WithHeader("Authorization", $"Bearer {_config.GPTAPIKey}")
-                    .WithHeader("Content-Type", "application/json")
-                    .PostJsonAsync(body)
-                    .ReceiveString();
-
-                using var doc = JsonDocument.Parse(rawResponse);
-
-                var content = doc.RootElement
-                    .GetProperty("choices")[0]
-                    .GetProperty("message")
-                    .GetProperty("content")
-                    .GetString();
-
-                if (string.IsNullOrWhiteSpace(content))
-                    throw new Exception($"GPT returned empty content for signer '{signerTitle}' fields.");
-
-                var parsed = JsonSerializer.Deserialize<SignerFieldsDto>(
-                    content,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-                if (parsed == null)
-                    throw new Exception($"Parsed GPT fields content is null for signer '{signerTitle}'.");
-
-                parsed.Fields ??= new List<string>();
-                return parsed;
-            }
-            catch (FlurlHttpException httpEx)
-            {
-                string errorBody = await httpEx.GetResponseStringAsync();
-                throw new Exception($"GPT API (fields) returned HTTP {(int?)httpEx.StatusCode} for signer '{signerTitle}': {errorBody}");
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"GPT fields processing failed for signer '{signerTitle}': {ex.Message}");
-            }
-        }
-
-        private object[] BuildFieldsMessages(List<byte[]> images, string instruction)
-        {
-            var messages = new List<object>
-            {
-                new
-                {
-                    role = "user",
-                    content = new object[]
-                    {
-                        new { type = "text", text = instruction }
-                    }
-                }
-            };
-
-            foreach (var img in images)
-            {
-                messages.Add(new
-                {
-                    role = "user",
-                    content = new object[]
-                    {
-                        new
-                        {
-                            type = "image_url",
-                            image_url = new { url = $"data:image/png;base64,{Convert.ToBase64String(img)}" }
-                        }
-                    }
-                });
-            }
-
-            return messages.ToArray();
         }
 
         private class SignerFieldsDto

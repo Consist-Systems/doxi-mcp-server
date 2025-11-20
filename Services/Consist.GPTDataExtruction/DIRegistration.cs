@@ -12,6 +12,7 @@ namespace Consist.GPTDataExtruction
             services.AddSingleton<IAIModelDataExtractionClient, GPTDataExtractionClient>();
             services.AddSingleton<TemplateExtractorFromPDF>();
             services.AddSingleton<TemplateExtractorFromText>();
+            services.AddScoped<GenericGptClient>();
             
             return services;
         }
