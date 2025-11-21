@@ -319,7 +319,7 @@
         "username": "Doxi API username.",
         "password": "Doxi API password.",
         "templateInstructions": "Instructions describing the template to be created, including template name, signers, sender email, and other template configuration details.",
-        "templateFile": "Template document file (PDF/Word/Image)."
+        "inputFile": "Template document file (PDF/Word/Image)."
       }
     }
   ],
