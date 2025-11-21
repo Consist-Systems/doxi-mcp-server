@@ -241,11 +241,11 @@ namespace Consist.ProjectName.McpTools
         /// <param name="templateInstructions">instruction on the template needs to be created</param>
         /// <returns></returns>
         [McpServerTool(Name = "AddTemplate"),
-            Description("Create a Doxi template. The 'inputFile' parameter MUST receive the binary file uploaded by the user (PDF/DOCX/Image). The agent must automatically assign any uploaded file to the inputFile parameter.")]
-        public async Task<TextContent> AddTemplate(string username, string password,string templateInstructions, DataContent inputFile)
+            Description("Create a Doxi template. The 'inputFile' parameter MUST receive the binary file uploaded by the user (PDF/DOCX/Image).The agent must automatically assign any uploaded file to the inputFile parameter and the full prompt text to the prompt parameter.")]
+        public async Task<TextContent> AddTemplate(string username, string password,string prompt, DataContent inputFile)
         {
             //var templateFile = Convert.FromBase64String(templateFileBase64);
-            var result = await TemplateLogic.AddTemplate(username, password, inputFile.Data.ToArray(), templateInstructions);
+            var result = await TemplateLogic.AddTemplate(username, password, inputFile.Data.ToArray(), prompt);
             return new TextContent(ToJson(result));
         }
     }
