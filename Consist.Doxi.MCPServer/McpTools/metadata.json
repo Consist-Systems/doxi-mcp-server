@@ -312,17 +312,14 @@
     },
     {
       "name": "AddTemplate",
-      "summary": "Create a Doxi template from an uploaded file. The inputFile parameter MUST receive the binary file uploaded by the user (PDF/DOCX/Image). The agent must automatically assign any uploaded file to inputFile and the full prompt text to the prompt parameter.",
+      "summary": "Create a Doxi template. The 'inputFileBase64' parameter MUST receive the base64 file uploaded by the user (PDF/DOCX/Image).Parameter prompt contains all other prompt text that the client add.",
       "endpoint": "POST /ex/template",
       "returns": "Template creation result JSON (TextContent) with templateId and metadata.",
       "params": {
         "username": "Doxi API username.",
         "password": "Doxi API password.",
         "prompt": "Instructions describing the template, including template name, signers, sender email, and fields.",
-        "inputFile": {
-          "type": "file",
-          "description": "The uploaded template document file (PDF/DOCX/Image). MUST be populated automatically with the user's uploaded file."
-        }
+        "inputFileBase64": "Attached file in the request pass as base64 text"
       }
     }
 

@@ -23,6 +23,11 @@
     <ProjectReference Include="..\Services\ApryseDataExtractor\ApryseDataExtractor.csproj" />
     <ProjectReference Include="..\Services\Consist.GPTDataExtruction\Consist.GPTDataExtruction.csproj" />
     <ProjectReference Include="..\Services\Consist.MCPServer.DoxiClient\Consist.MCPServer.DoxiAPIClient.csproj" />
+    <ProjectReference Include="..\Services\Consist.PDFConverter\Consist.PDFConverter.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Drawing.Common" Version="8.0.2" />
   </ItemGroup>
 
 </Project>

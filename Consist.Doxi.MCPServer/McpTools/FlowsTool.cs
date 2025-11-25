@@ -237,15 +237,15 @@ namespace Consist.ProjectName.McpTools
         /// </summary>
         /// <param name="username">api username</param>
         /// <param name="password">api password</param>
-        /// <param name="templateFile">The template document (PDF/Word/Image)</param>
         /// <param name="templateInstructions">instruction on the template needs to be created</param>
+        /// <param name="inputFileBase64">The template document (PDF/Word/Image) in base64</param>
         /// <returns></returns>
         [McpServerTool(Name = "AddTemplate"),
-            Description("Create a Doxi template. The 'inputFile' parameter MUST receive the binary file uploaded by the user (PDF/DOCX/Image).The agent must automatically assign any uploaded file to the inputFile parameter and the full prompt text to the prompt parameter.")]
-        public async Task<TextContent> AddTemplate(string username, string password,string prompt, DataContent inputFile)
+            Description("Create a Doxi template. The 'inputFileBase64' parameter MUST receive the base64 file uploaded by the user (PDF/DOCX/Image).Parameter prompt contains all other prompt text that the client add.")]
+        public async Task<TextContent> AddTemplate(string username, string password,string prompt, string inputFileBase64)
         {
-            //var templateFile = Convert.FromBase64String(templateFileBase64);
-            var result = await TemplateLogic.AddTemplate(username, password, inputFile.Data.ToArray(), prompt);
+            var templateFile = Convert.FromBase64String(inputFileBase64);
+            var result = await TemplateLogic.AddTemplate(username, password, templateFile, prompt);
             return new TextContent(ToJson(result));
         }
     }
