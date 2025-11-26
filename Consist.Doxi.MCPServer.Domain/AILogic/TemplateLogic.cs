@@ -10,6 +10,7 @@ using Doxi.APIClient;
 using Newtonsoft.Json;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Reflection;
 
 namespace Consist.Doxi.MCPServer.Domain.AILogic
 {
@@ -152,16 +153,27 @@ namespace Consist.Doxi.MCPServer.Domain.AILogic
 
         private IEnumerable<ExTemplatFlowElement> FixOverlappingFields(IEnumerable<ExTemplatFlowElement> fields)
         {
+            return FixOverlappingFieldsInternal(fields.ToList(), 0);
+        }
+
+        private IEnumerable<ExTemplatFlowElement> FixOverlappingFieldsInternal(List<ExTemplatFlowElement> fields, int depth)
+        {
+            if (depth >= 10)
+                return fields; // safety stop
+
+            bool changed = false;
             var result = new List<ExTemplatFlowElement>();
             var grouped = fields.GroupBy(f => f.PageNumber);
 
             foreach (var group in grouped)
             {
                 var pageFields = group.ToList();
-                bool changed = true;
-                while (changed)
+                bool localChanged = true;
+
+                while (localChanged)
                 {
-                    changed = false;
+                    localChanged = false;
+
                     for (int i = 0; i < pageFields.Count; i++)
                     {
                         for (int j = i + 1; j < pageFields.Count; j++)
@@ -171,40 +183,74 @@ namespace Consist.Doxi.MCPServer.Domain.AILogic
 
                             if (IsOverlapping(f1, f2))
                             {
-                                // Merge
                                 var merged = MergeFields(f1, f2);
-                                pageFields.RemoveAt(j);
-                                pageFields.RemoveAt(i);
+
+                                // Remove higher index first
+                                if (j > i)
+                                {
+                                    pageFields.RemoveAt(j);
+                                    pageFields.RemoveAt(i);
+                                }
+                                else
+                                {
+                                    pageFields.RemoveAt(i);
+                                    pageFields.RemoveAt(j);
+                                }
+
                                 pageFields.Add(merged);
+
+                                localChanged = true;
                                 changed = true;
-                                break;
+                                break; // restart scanning
                             }
                         }
-                        if (changed) break;
+
+                        if (localChanged)
+                            break;
                     }
                 }
+
                 result.AddRange(pageFields);
             }
-            return result;
+
+            // New: Only stop if there are ZERO overlaps left
+            if (!changed && !HasAnyOverlap(result))
+                return result;
+
+            // Continue recursion
+            return FixOverlappingFieldsInternal(result, depth + 1);
+        }
+
+        private bool HasAnyOverlap(List<ExTemplatFlowElement> fields)
+        {
+            for (int i = 0; i < fields.Count; i++)
+            {
+                for (int j = i + 1; j < fields.Count; j++)
+                {
+                    if (IsOverlapping(fields[i], fields[j]))
+                        return true;
+                }
+            }
+            return false;
         }
 
         private bool IsOverlapping(ExTemplatFlowElement f1, ExTemplatFlowElement f2)
         {
+            if (f1.ElementId == f2.ElementId)
+                return false;
+
             var r1 = new RectangleF((float)f1.Position.Left, (float)f1.Position.Top, (float)f1.Position.Width, (float)f1.Position.Height);
             var r2 = new RectangleF((float)f2.Position.Left, (float)f2.Position.Top, (float)f2.Position.Width, (float)f2.Position.Height);
 
-            if (!r1.IntersectsWith(r2)) return false;
+            if (!r1.IntersectsWith(r2))
+                return false;
 
             var intersection = RectangleF.Intersect(r1, r2);
             var area1 = r1.Width * r1.Height;
             var area2 = r2.Width * r2.Height;
             var intersectArea = intersection.Width * intersection.Height;
 
-            // If intersection is significant (e.g. > 20% of the smaller field)
-            if (intersectArea > 0.2 * Math.Min(area1, area2))
-                return true;
-
-            return false;
+            return intersectArea > 0.2 * Math.Min(area1, area2);
         }
 
         private ExTemplatFlowElement MergeFields(ExTemplatFlowElement f1, ExTemplatFlowElement f2)
@@ -215,7 +261,7 @@ namespace Consist.Doxi.MCPServer.Domain.AILogic
 
             return new ExTemplatFlowElement
             {
-                ElementId = f1.ElementId, // Keep one ID
+                ElementId = f1.ElementId,
                 PageNumber = f1.PageNumber,
                 Position = new ElementPosition
                 {
@@ -225,9 +271,10 @@ namespace Consist.Doxi.MCPServer.Domain.AILogic
                     Height = union.Height
                 },
                 ElementLabel = f1.ElementLabel ?? f2.ElementLabel,
-                ElementType = f1.ElementType // Assume same type or take first
+                ElementType = f1.ElementType
             };
         }
+
 
         private async Task UpdateFieldLabelsAndSigners(IEnumerable<ExTemplatFlowElement> documentFields, TemplateInfoFromPDFwithFields templateInformationFromPDF, byte[] templateDocument)
         {
@@ -253,7 +300,7 @@ namespace Consist.Doxi.MCPServer.Domain.AILogic
                 using var graphics = Graphics.FromImage(bitmap);
 
                 var pen = new Pen(Color.Red, 3);
-                var font = new Font("Arial", 24, FontStyle.Bold);
+                var font = new Font("Arial", 8, FontStyle.Bold);
                 var brush = new SolidBrush(Color.Red);
 
                 if (fieldsByPage.Any(g => g.Key == pageNum))
@@ -287,6 +334,8 @@ namespace Consist.Doxi.MCPServer.Domain.AILogic
                 labeledImages.Add(outMs.ToArray());
             }
 
+            DebugImages(labeledImages);
+
             var prompt = "I have marked fields with red rectangles and numbers. " +
                          "For each number, please provide a unique label and estimate the signer from the following list: " +
                          string.Join(", ", templateInformationFromPDF.Signers.Select(s => s.Title)) +
@@ -315,6 +364,17 @@ namespace Consist.Doxi.MCPServer.Domain.AILogic
                         }
                     }
                 }
+            }
+        }
+
+        private void DebugImages(List<byte[]> labeledImages)
+        {
+            for (int i = 0; i < labeledImages.Count; i++)
+            {
+                var imageName = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), $"{i}.png");
+                if (File.Exists(imageName))
+                    File.Delete(imageName);
+                File.WriteAllBytes(imageName, labeledImages[i]);
             }
         }
 
