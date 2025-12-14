@@ -44,10 +44,16 @@ namespace ApryseDataExtractor
                 var documentStructure =
                     JsonConvert.DeserializeObject<DocumentStructure>(documentStructureJson);
 
-                return GetMatchFieldToLabel(documentFieldsPosition, documentStructure);
+                var result = GetMatchFieldToLabel(documentFieldsPosition, documentStructure);
+                result = result.Where(f => f.ElementLabel==null || !f.ElementLabel.StartsWith("The trial is limited to 100 pages and will insert"));
+                return result;
             }
             finally
+
             {
+
+
+
                 if (File.Exists(tempFilePath))
                     File.Delete(tempFilePath);
             }

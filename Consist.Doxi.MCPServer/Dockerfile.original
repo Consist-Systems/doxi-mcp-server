@@ -4,31 +4,41 @@
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 USER $APP_UID
 WORKDIR /app
-EXPOSE 5000
-
+EXPOSE 8080
 
 # This stage is used to build the service project
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
+
 COPY ["Consist.Doxi.MCPServer/Consist.Doxi.MCPServer.csproj", "Consist.Doxi.MCPServer/"]
 COPY ["Consist.Doxi.MCPServer.Domain/Consist.Doxi.MCPServer.Domain.csproj", "Consist.Doxi.MCPServer.Domain/"]
 COPY ["Services/ApryseDataExtractor/ApryseDataExtractor.csproj", "Services/ApryseDataExtractor/"]
 COPY ["Services/Consist.GPTDataExtruction/Consist.GPTDataExtruction.csproj", "Services/Consist.GPTDataExtruction/"]
-COPY ["Services/Consist.PDFConverter/Consist.PDFTools.csproj", "Services/Consist.PDFConverter/"]
+COPY ["Services/Consist.PDFTools/Consist.PDFTools.csproj", "Services/Consist.PDFTools/"]
 COPY ["Services/Consist.MCPServer.DoxiClient/Consist.MCPServer.DoxiAPIClient.csproj", "Services/Consist.MCPServer.DoxiClient/"]
+
 RUN dotnet restore "./Consist.Doxi.MCPServer/Consist.Doxi.MCPServer.csproj"
+
 COPY . .
 WORKDIR "/src/Consist.Doxi.MCPServer"
 RUN dotnet build "./Consist.Doxi.MCPServer.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
-# This stage is used to publish the service project to be copied to the final stage
+# Publish stage
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
 RUN dotnet publish "./Consist.Doxi.MCPServer.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
-# This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
-FROM base AS final
+# Final runtime stage
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
+
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "Consist.Doxi.MCPServer.dll"]
+
+###############################################################
+#           INSTALL APRYSE DATA EXTRACTION MODULE             #
+###############################################################
+
+USER root
+
+RUN apt-get update && apt-get install -y wget tar && rm -rf

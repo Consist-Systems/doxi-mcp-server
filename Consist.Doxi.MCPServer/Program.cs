@@ -41,14 +41,43 @@ namespace Consist.ProjectName
                 _logger.Debug("Enter CreateHostBuilder");
                 var builder = WebHost.CreateDefaultBuilder(args);
 
-                // Configure Kestrel to use only TLS 1.2 and 1.3
-                builder.ConfigureKestrel(options =>
+                // Configure URLs - listen on all interfaces for Docker compatibility
+                // Only override URLs when running in Docker or when ASPNETCORE_HTTP_PORTS is explicitly set
+                var httpPort = Environment.GetEnvironmentVariable("ASPNETCORE_HTTP_PORTS");
+                var isDocker = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true";
+                if (!string.IsNullOrEmpty(httpPort) || isDocker)
                 {
-                    options.ConfigureHttpsDefaults(httpsOptions =>
+                    var port = httpPort ?? "5000";
+                    var listenAddress = isDocker ? "0.0.0.0" : "localhost";
+                    builder.UseUrls($"http://{listenAddress}:{port}");
+                }
+
+                // Configure Kestrel to use only TLS 1.2 and 1.3
+                // Only configure explicit listener when in Docker
+                if (isDocker && !string.IsNullOrEmpty(httpPort))
+                {
+                    builder.ConfigureKestrel(options =>
                     {
-                        httpsOptions.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
+                        options.Listen(IPAddress.Any, int.Parse(httpPort), listenOptions =>
+                        {
+                            // HTTP listener
+                        });
+                        options.ConfigureHttpsDefaults(httpsOptions =>
+                        {
+                            httpsOptions.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
+                        });
                     });
-                });
+                }
+                else
+                {
+                    builder.ConfigureKestrel(options =>
+                    {
+                        options.ConfigureHttpsDefaults(httpsOptions =>
+                        {
+                            httpsOptions.SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
+                        });
+                    });
+                }
 
                 builder = builder.UseStartup<Startup>();
                 builder = builder.UseDefaultServiceProvider(options =>

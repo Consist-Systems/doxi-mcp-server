@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 using Consist.GPTDataExtruction.Model;
-using Consist.PDFConverter;
+using Consist.PDFTools;
 using Microsoft.Extensions.Logging;
 
 namespace Consist.GPTDataExtruction
@@ -30,8 +30,7 @@ For each signer:
 - Title: role name as shown in the document
 - SignerType: Use these enum values:
   * 0 = Changeable - can be assigned to any user at sending time
-  * 1 = Static - must be assigned to a specific user
-  * 2 = Anonymous - the signer enter url to sign without identification
+  * 1 = Static - must be assigned to a specific user (this signer is allways the same user in all the template instances)
 at least one signer must be set
 
 Do NOT include any field labels in this response.
@@ -91,7 +90,7 @@ Use all pages together.";
             var result = new TemplateInfoFromPDFwithFields
             {
                 TemplateName = structure.TemplateName ?? string.Empty,
-                SendMethodType = structure.SendMethodType,
+                SendMethodType =  structure.SendMethodType,
                 Languages = structure.Languages ?? string.Empty,
                 Signers = structure.Signers?
                     .Select(s => new SignerResponseWithFields
@@ -103,6 +102,10 @@ Use all pages together.";
                     .ToArray()
                     ?? Array.Empty<SignerResponseWithFields>()
             };
+
+            if (result.SendMethodType == 1
+                && result.Signers.Length < 2)
+                result.SendMethodType = 0;
 
             // Phase 2: for each signer, extract fields for that signer
             foreach (var signer in result.Signers)

@@ -10,7 +10,10 @@ namespace Consist.Doxi.MCPServer.Domain
             services.AddScoped<IContextInformation, ContextInformation>();
             services.AddScoped<DoxiAPIWrapper>();
             services.AddScoped<TemplateLogic>();
+            services.AddScoped<DocumentEditorLogic>();
             
+
+
             return services;
         }
 

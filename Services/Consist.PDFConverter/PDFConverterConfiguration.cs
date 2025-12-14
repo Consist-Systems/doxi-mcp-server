@@ -1,4 +1,4 @@
-﻿namespace Consist.PDFConverter
+﻿namespace Consist.PDFTools
 {
     public class PDFConverterConfiguration
     {

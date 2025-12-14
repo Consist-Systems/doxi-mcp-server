@@ -5,7 +5,7 @@ using Consist.Doxi.MCPServer.Domain.Models;
 using Consist.GPTDataExtruction;
 using Consist.GPTDataExtruction.Model;
 using Consist.MCPServer.DoxiAPIClient;
-using Consist.PDFConverter;
+using Consist.PDFTools;
 using Doxi.APIClient;
 using Newtonsoft.Json;
 using System.Drawing;
@@ -45,7 +45,7 @@ namespace Consist.Doxi.MCPServer.Domain.AILogic
             var templateInformationFromPDF = await _aIModelDataExtractionClient.ExtractTemplateInformationFromPDF(templateDocument);
             var documentFields = await _documentFieldExtractor.GetDocumentElements(templateDocument, templateInformationFromPDF.Languages);
             
-            documentFields = FixOverlappingFields(documentFields);
+            documentFields = FixOverlappingFields(documentFields.ToList());
 
             await UpdateFieldLabelsAndSigners(documentFields, templateInformationFromPDF, templateDocument);
 
@@ -76,7 +76,7 @@ namespace Consist.Doxi.MCPServer.Domain.AILogic
             {
                 DocumentFileName = "tempalte.pdf",
                 Base64DocumentFile = Convert.ToBase64String(templateDocument),
-                TemplateName = templateInformationFromPrompt.TemplateName ?? templateInformationFromPDF.TemplateName,
+                TemplateName = string.IsNullOrWhiteSpace(templateInformationFromPrompt.TemplateName) ? templateInformationFromPDF.TemplateName: templateInformationFromPrompt.TemplateName,
                 SendMethodType = (SendMethodType)templateInformationFromPrompt.SendMethodType
                                     .GetValueOrDefault(
                                         templateInformationFromPDF.SendMethodType
@@ -151,87 +151,69 @@ namespace Consist.Doxi.MCPServer.Domain.AILogic
             return templateInformationFromPDF.Signers.Select(s => SignerData.ConvertToSignerData(s));
         }
 
-        private IEnumerable<ExTemplatFlowElement> FixOverlappingFields(IEnumerable<ExTemplatFlowElement> fields)
-        {
-            return FixOverlappingFieldsInternal(fields.ToList(), 0);
-        }
 
-        private IEnumerable<ExTemplatFlowElement> FixOverlappingFieldsInternal(List<ExTemplatFlowElement> fields, int depth)
+        private IEnumerable<ExTemplatFlowElement> FixOverlappingFields(List<ExTemplatFlowElement> fields)
         {
-            if (depth >= 10)
-                return fields; // safety stop
-
             bool changed = false;
             var result = new List<ExTemplatFlowElement>();
             var grouped = fields.GroupBy(f => f.PageNumber);
 
             foreach (var group in grouped)
             {
-                var pageFields = group.ToList();
-                bool localChanged = true;
-
-                while (localChanged)
-                {
-                    localChanged = false;
-
-                    for (int i = 0; i < pageFields.Count; i++)
-                    {
-                        for (int j = i + 1; j < pageFields.Count; j++)
-                        {
-                            var f1 = pageFields[i];
-                            var f2 = pageFields[j];
-
-                            if (IsOverlapping(f1, f2))
-                            {
-                                var merged = MergeFields(f1, f2);
-
-                                // Remove higher index first
-                                if (j > i)
-                                {
-                                    pageFields.RemoveAt(j);
-                                    pageFields.RemoveAt(i);
-                                }
-                                else
-                                {
-                                    pageFields.RemoveAt(i);
-                                    pageFields.RemoveAt(j);
-                                }
-
-                                pageFields.Add(merged);
-
-                                localChanged = true;
-                                changed = true;
-                                break; // restart scanning
-                            }
-                        }
-
-                        if (localChanged)
-                            break;
-                    }
-                }
-
-                result.AddRange(pageFields);
+                changed = FixPageOverlappingFieldsInternal(changed, result, group);
             }
+           
+            return result;
 
-            // New: Only stop if there are ZERO overlaps left
-            if (!changed && !HasAnyOverlap(result))
-                return result;
-
-            // Continue recursion
-            return FixOverlappingFieldsInternal(result, depth + 1);
         }
 
-        private bool HasAnyOverlap(List<ExTemplatFlowElement> fields)
+        private bool FixPageOverlappingFieldsInternal(bool changed, List<ExTemplatFlowElement> result, IGrouping<int, ExTemplatFlowElement> group)
         {
-            for (int i = 0; i < fields.Count; i++)
+            var pageFields = group.ToList();
+            bool localChanged = true;
+
+            while (localChanged)
             {
-                for (int j = i + 1; j < fields.Count; j++)
+                localChanged = false;
+
+                for (int i = 0; i < pageFields.Count; i++)
                 {
-                    if (IsOverlapping(fields[i], fields[j]))
-                        return true;
+                    for (int j = i + 1; j < pageFields.Count; j++)
+                    {
+                        var f1 = pageFields[i];
+                        var f2 = pageFields[j];
+
+                        if (IsOverlapping(f1, f2))
+                        {
+                            var merged = MergeFields(f1, f2);
+
+                            // Remove higher index first
+                            if (j > i)
+                            {
+                                pageFields.RemoveAt(j);
+                                pageFields.RemoveAt(i);
+                            }
+                            else
+                            {
+                                pageFields.RemoveAt(i);
+                                pageFields.RemoveAt(j);
+                            }
+
+                            pageFields.Add(merged);
+
+                            localChanged = true;
+                            changed = true;
+                            break; // restart scanning
+                        }
+                    }
+
+                    if (localChanged)
+                        break;
                 }
             }
-            return false;
+
+            result.AddRange(pageFields);
+            return changed;
         }
 
         private bool IsOverlapping(ExTemplatFlowElement f1, ExTemplatFlowElement f2)
@@ -279,11 +261,45 @@ namespace Consist.Doxi.MCPServer.Domain.AILogic
         private async Task UpdateFieldLabelsAndSigners(IEnumerable<ExTemplatFlowElement> documentFields, TemplateInfoFromPDFwithFields templateInformationFromPDF, byte[] templateDocument)
         {
             var images = await _documentConverter.PDFToImages(templateDocument);
+            List<byte[]> labeledImages;
+            Dictionary<int, ExTemplatFlowElement> fieldMap;
+            GetLabledImages(documentFields, images, out labeledImages, out fieldMap);
+            var fieldsPredictions = await _aIModelDataExtractionClient.GetFieldsPredictionsFromImages(documentFields, templateInformationFromPDF, labeledImages);
+            UpdateFieldLabelsAndSigners(templateInformationFromPDF, fieldMap, fieldsPredictions);
+        }
+
+        private static void UpdateFieldLabelsAndSigners(TemplateInfoFromPDFwithFields templateInformationFromPDF, Dictionary<int, ExTemplatFlowElement> fieldMap, FieldsPredictions fieldsPredictions)
+        {
+            if (fieldsPredictions?.Fields != null)
+            {
+                foreach (var item in fieldsPredictions.Fields)
+                {
+                    if (fieldMap.TryGetValue(item.FieldNumber, out var field))
+                    {
+                        field.ElementLabel = item.Label;
+
+                        var signer = templateInformationFromPDF.Signers.FirstOrDefault(s => s.Title == item.Signer);
+                        if (signer != null)
+                        {
+                            var currentFields = signer.Fields?.ToList() ?? new List<string>();
+                            if (!currentFields.Contains(item.Label))
+                            {
+                                currentFields.Add(item.Label);
+                                signer.Fields = currentFields.ToArray();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private static void GetLabledImages(IEnumerable<ExTemplatFlowElement> documentFields, IEnumerable<byte[]> images, out List<byte[]> labeledImages, out Dictionary<int, ExTemplatFlowElement> fieldMap)
+        {
             var imageList = images.ToList();
 
             var fieldsByPage = documentFields.GroupBy(f => f.PageNumber);
-            var labeledImages = new List<byte[]>();
-            var fieldMap = new Dictionary<int, ExTemplatFlowElement>();
+            labeledImages = new List<byte[]>();
+            fieldMap = new Dictionary<int, ExTemplatFlowElement>();
             int fieldCounter = 1;
 
             // Scale factor: PDF points (72 DPI) to Image (assume 96 DPI default)
@@ -332,38 +348,6 @@ namespace Consist.Doxi.MCPServer.Domain.AILogic
                 using var outMs = new MemoryStream();
                 bitmap.Save(outMs, ImageFormat.Png);
                 labeledImages.Add(outMs.ToArray());
-            }
-
-            DebugImages(labeledImages);
-
-            var prompt = "I have marked fields with red rectangles and numbers. " +
-                         "For each number, please provide a unique label and estimate the signer from the following list: " +
-                         string.Join(", ", templateInformationFromPDF.Signers.Select(s => s.Title)) +
-                         ". Return JSON with list of { FieldNumber, Label, Signer }.";
-
-            _genericGptClient.SetModelData(model: "gpt-4o");
-            var gptResponse = await _genericGptClient.RunModelByFiles<GptResponse>(labeledImages, prompt);
-
-            if (gptResponse?.Fields != null)
-            {
-                foreach (var item in gptResponse.Fields)
-                {
-                    if (fieldMap.TryGetValue(item.FieldNumber, out var field))
-                    {
-                        field.ElementLabel = item.Label;
-
-                        var signer = templateInformationFromPDF.Signers.FirstOrDefault(s => s.Title == item.Signer);
-                        if (signer != null)
-                        {
-                            var currentFields = signer.Fields?.ToList() ?? new List<string>();
-                            if (!currentFields.Contains(item.Label))
-                            {
-                                currentFields.Add(item.Label);
-                                signer.Fields = currentFields.ToArray();
-                            }
-                        }
-                    }
-                }
             }
         }
 

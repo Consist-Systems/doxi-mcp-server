@@ -2,6 +2,10 @@ services:
   consist.doxi.mcpserver:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_HTTP_PORTS=8080
+      - ASPNETCORE_HTTP_PORTS=5000
+      - ASPNETCORE_URLS=http://0.0.0.0:5000
     ports:
-      - "8080"
+      - "5287:5000"
+    volumes:
+      - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
+      - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro

@@ -10,6 +10,7 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2" />
     <PackageReference Include="Syncfusion.PdfToImageConverter.Net" Version="31.2.12" />
+    <PackageReference Include="Syncfusion.Pdf.Net" Version="31.2.12" />
   </ItemGroup>
 
 </Project>

@@ -1,8 +1,6 @@
-﻿using Flurl.Http;
+using Flurl.Http;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
-using Newtonsoft.Json.Schema.Generation;
-using Newtonsoft.Json.Schema;
+using Consist.GPTDataExtruction.Extensions;
 
 namespace Consist.GPTDataExtruction
 {
@@ -128,7 +126,7 @@ namespace Consist.GPTDataExtruction
                         }
                     };
                
-                var payloadStr = JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true });
+                var payloadStr = System.Text.Json.JsonSerializer.Serialize(payload, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
                 _logger.LogDebug($"GPT Request Payload: {payloadStr}");
 
                 string rawResponse = await _currentEndpoint
@@ -137,11 +135,11 @@ namespace Consist.GPTDataExtruction
                     .PostStringAsync(payloadStr)
                     .ReceiveString();
 
-                using var doc = JsonDocument.Parse(rawResponse);
+                using var doc = System.Text.Json.JsonDocument.Parse(rawResponse);
 
                 // Check for error response
                 if (doc.RootElement.TryGetProperty("error", out var errorElement)
-                    && errorElement.ValueKind != JsonValueKind.Null)
+                    && errorElement.ValueKind != System.Text.Json.JsonValueKind.Null)
                 {
                     var errorMessage = errorElement.TryGetProperty("message", out var messageProp) 
                         ? messageProp.GetString() 
@@ -169,7 +167,7 @@ namespace Consist.GPTDataExtruction
         public static TResponse ParseGptResponse<TResponse>(string rawResponse)
     where TResponse : class
         {
-            using var doc = JsonDocument.Parse(rawResponse);
+            using var doc = System.Text.Json.JsonDocument.Parse(rawResponse);
 
             // Navigate to: output[0].content[0].text
             var output = doc.RootElement.GetProperty("output");
@@ -191,76 +189,20 @@ namespace Consist.GPTDataExtruction
                 throw new Exception("GPT response text is empty.");
 
             // Parse the JSON string inside "text"
-            return JsonSerializer.Deserialize<TResponse>(
+            return System.Text.Json.JsonSerializer.Deserialize<TResponse>(
                 jsonText,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }
             )!;
         }
 
 
-        private JsonElement GenerateJsonSchema<TResponse>() where TResponse : class
+        private System.Text.Json.JsonElement GenerateJsonSchema<TResponse>() where TResponse : class
         {
-            var generator = new JSchemaGenerator
-            {
-                SchemaReferenceHandling = SchemaReferenceHandling.None
-            };
+            // Use MIT-licensed NJsonSchema to avoid Newtonsoft.Json.Schema licensing limits
+            System.Text.Json.Nodes.JsonNode schemaNode = new NJsonSchema.JsonSchema().ToOpenAISchemaNode<TResponse>();
 
-            JSchema schema = generator.Generate(typeof(TResponse));
-
-            // Root must always be an object (OpenAI requirement)
-            if (!schema.Type.HasValue)
-                schema.Type = JSchemaType.Object;
-
-            // Also apply additionalProperties:false recursively
-            ApplyNoAdditionalProperties(schema);
-
-            string json = schema.ToString();
-            using var doc = JsonDocument.Parse(json);
+            using var doc = System.Text.Json.JsonDocument.Parse(schemaNode.ToJsonString());
             return doc.RootElement.Clone();
-        }
-
-
-        private void ApplyNoAdditionalProperties(JSchema schema)
-        {
-            // If this schema is an object: forbid additional properties
-            if (schema.Type.HasValue && schema.Type.Value.HasFlag(JSchemaType.Object))
-            {
-                schema.AllowAdditionalProperties = false;
-            }
-
-            // Process properties (object fields)
-            foreach (var kv in schema.Properties)
-            {
-                ApplyNoAdditionalProperties(kv.Value);
-            }
-
-            // Process array items
-            if (schema.Items != null)
-            {
-                foreach (var item in schema.Items)
-                {
-                    ApplyNoAdditionalProperties(item);
-                }
-            }
-
-            // AdditionalItems (for arrays) 
-            if (schema.AdditionalItems != null)
-            {
-                ApplyNoAdditionalProperties(schema.AdditionalItems);
-            }
-
-            // Process union types
-            if (schema.AnyOf != null)
-                foreach (var s in schema.AnyOf)
-                    ApplyNoAdditionalProperties(s);
-
-            if (schema.OneOf != null)
-                foreach (var s in schema.OneOf)
-                    ApplyNoAdditionalProperties(s);
-
-            if (schema.AllOf != null)
-                foreach (var s in schema.AllOf)
-                    ApplyNoAdditionalProperties(s);
         }
 
 

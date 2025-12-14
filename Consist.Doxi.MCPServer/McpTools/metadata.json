@@ -321,6 +321,16 @@
         "prompt": "Instructions describing the template, including template name, signers, sender email, and fields.",
         "inputFileBase64": "Attached file in the request pass as base64 text"
       }
+    },
+    {
+      "name": "AddTexts",
+      "summary": "Adds text elements to a PDF document and returns the modified PDF.",
+      "endpoint": "MCP Tool",
+      "returns": "Modified PDF as DataContent (contentType=\"application/pdf\").",
+      "params": {
+        "pdfFileBase64": "PDF document as base64-encoded string.",
+        "textElementsJson": "JSON string containing an array of TextElement objects. Each TextElement should have: Text (string), Font (string), FontSize (int), X (double), Y (double), Width (double), Height (double), PageNumber (int)."
+      }
     }
 
   ],
@@ -643,6 +653,53 @@
           }
         }
       }
+    },
+    "TextElement": {
+      "description": "Represents a text element to be added to a PDF document (AddTexts).",
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "The text content to add to the PDF."
+        },
+        "font": {
+          "type": "string",
+          "description": "Font name (e.g., Helvetica, Arial, Times, Courier). Defaults to Helvetica if not specified."
+        },
+        "fontSize": {
+          "type": "integer",
+          "description": "Font size in points."
+        },
+        "x": {
+          "type": "number",
+          "description": "X coordinate position on the page (in points, from left edge)."
+        },
+        "y": {
+          "type": "number",
+          "description": "Y coordinate position on the page (in points, from top edge)."
+        },
+        "width": {
+          "type": "number",
+          "description": "Width of the text area (in points)."
+        },
+        "height": {
+          "type": "number",
+          "description": "Height of the text area (in points)."
+        },
+        "pageNumber": {
+          "type": "integer",
+          "description": "Page number where the text should be added (1-based)."
+        }
+      },
+      "required": [
+        "text",
+        "fontSize",
+        "x",
+        "y",
+        "width",
+        "height",
+        "pageNumber"
+      ]
     }
   }
 }

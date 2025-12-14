@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace Consist.PDFConverter
+namespace Consist.PDFTools
 {
     public class SyncfusionDocumentConverter : IDocumentConverter
     {

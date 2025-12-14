@@ -2,7 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Syncfusion.Licensing;
 
-namespace Consist.PDFConverter
+namespace Consist.PDFTools
 {
     public static class DIRegistration
     {
@@ -23,6 +23,7 @@ namespace Consist.PDFConverter
 
             // Register configuration instance
             services.AddSingleton<IDocumentConverter, SyncfusionDocumentConverter>();
+            services.AddSingleton<IPDFEditor, PDFEditor>();
             
             return services;
         }

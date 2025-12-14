@@ -8,7 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="Flurl.Http.Signed" Version="3.2.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -23,7 +23,7 @@
     <ProjectReference Include="..\Services\ApryseDataExtractor\ApryseDataExtractor.csproj" />
     <ProjectReference Include="..\Services\Consist.GPTDataExtruction\Consist.GPTDataExtruction.csproj" />
     <ProjectReference Include="..\Services\Consist.MCPServer.DoxiClient\Consist.MCPServer.DoxiAPIClient.csproj" />
-    <ProjectReference Include="..\Services\Consist.PDFConverter\Consist.PDFConverter.csproj" />
+    <ProjectReference Include="..\Services\Consist.PDFConverter\Consist.PDFTools.csproj" />
   </ItemGroup>
 
   <ItemGroup>

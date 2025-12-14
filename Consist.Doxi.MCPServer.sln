@@ -19,7 +19,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ApryseDataExtractor", "Serv
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Consist.GPTDataExtruction.Tests", "Tests\Consist.GPTDataExtruction.Tests\Consist.GPTDataExtruction.Tests.csproj", "{1EBD2314-108E-4F10-A562-236287BBB9CA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Consist.PDFConverter", "Services\Consist.PDFConverter\Consist.PDFConverter.csproj", "{344A071C-8EC7-4707-A73F-F3C9CFFBD728}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Consist.PDFTools", "Services\Consist.PDFConverter\Consist.PDFTools.csproj", "{344A071C-8EC7-4707-A73F-F3C9CFFBD728}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Consist.PDFTools.Tests", "Tests\Consist.PDFTools.Tests\Consist.PDFTools.Tests.csproj", "{551944EC-D703-4112-A322-368246735CEC}"
+EndProject
+Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{81DDED9D-158B-E303-5F62-77A2896D2A5A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -55,6 +59,14 @@ Global
 		{344A071C-8EC7-4707-A73F-F3C9CFFBD728}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{344A071C-8EC7-4707-A73F-F3C9CFFBD728}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{344A071C-8EC7-4707-A73F-F3C9CFFBD728}.Release|Any CPU.Build.0 = Release|Any CPU
+		{551944EC-D703-4112-A322-368246735CEC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{551944EC-D703-4112-A322-368246735CEC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{551944EC-D703-4112-A322-368246735CEC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{551944EC-D703-4112-A322-368246735CEC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -65,6 +77,7 @@ Global
 		{1790A735-C6C2-4C0E-B6BA-8BAA968DADEC} = {5B6B63F4-083F-4656-86AD-C9D0B7C5192D}
 		{1EBD2314-108E-4F10-A562-236287BBB9CA} = {EEFB8D10-5D62-4321-A0B5-88ED51BC32DE}
 		{344A071C-8EC7-4707-A73F-F3C9CFFBD728} = {5B6B63F4-083F-4656-86AD-C9D0B7C5192D}
+		{551944EC-D703-4112-A322-368246735CEC} = {EEFB8D10-5D62-4321-A0B5-88ED51BC32DE}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {41A2247B-C888-4223-9953-56395B780951}
