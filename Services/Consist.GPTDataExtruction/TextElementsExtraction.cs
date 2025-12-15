@@ -41,80 +41,39 @@ Output:
 User instruction:
 ";
 
-        private const string GET_TEXT_ELEMENTS_INSTRUCTIONS = @"You are a PDF text insertion planner and resolver.
+        private const string GET_TEXT_ELEMENTS_INSTRUCTIONS = @"**GPT API Prompt (minimal):**
 
-You must perform your task in TWO STRICT PHASES:
+Input:
+- A JSON containing an instruction and document elements linked to it.
+- Image list of the PDF - Image per page
+- documentStructure JSON: contain the full document structure - ReferenceElement taked from this JSON.
 
-PHASE 1 – INSTRUCTION EXTRACTION
---------------------------------
-From the user’s natural-language instruction, you must extract a logical
-TextElementInstructionsRoot object.
+Task:
+Place the given text (`Text`) onto the PDF at the most appropriate position relative to the `ReferenceElement`.
 
-TextElementInstructionsRoot contains an array of TextElementInstructions,
-where each instruction represents ONE atomic text insertion request.
+Rules:
 
-Each TextElementInstructions must contain:
-- Text: the exact text to insert
-- Command: a short imperative command describing WHAT to do
-- IsInField: true if the text is intended to be placed inside an existing form field,
-             false if it is free document text (header, title, note, etc.)
+* `PageNumber` specifies the PDF page to modify.
+* Determine a position (`X`, `Y`) in points relative to the bounding box of `ReferenceElement`.
+* Use the same font and font size as the `ReferenceElement`.
+Input JSON:";
 
-Rules for PHASE 1:
-- Do NOT determine font, font size, coordinates, or page numbers.
-- Do NOT merge multiple text insertions into one instruction.
-- Commands must be explicit and human-readable.
-- Field-related instructions (e.g., name, date, ID) must have IsInField = true.
-- Headers, titles, footers, or notes must have IsInField = false.
+        private const string TEXT_ELEMENTS_METADATA_INSTRUCTIONS = @"Provide:
 
-PHASE 2 – INSTRUCTION RESOLUTION
---------------------------------
-Using:
-- documentStructure.json (Apryse document structure)
-- DocumentFields.json (Apryse form fields)
-- PDF page images (visual validation only)
+Image files, where each image is a single page from the same PDF.
 
-You must resolve each TextElementInstruction into a concrete TextElement.
+A JSON (documentStructure) describing elements and their positions per page.
 
-Rules for PHASE 2:
-- Fonts and font sizes MUST be copied from existing nearby text elements
-  found in documentStructure.json.
-- Coordinates (X, Y, Width, Height) MUST be derived from existing Rect values
-  found in documentStructure.json or DocumentFields.json.
-- PageNumber MUST come from the resolved anchor element.
-- You MUST NOT invent fonts, sizes, pages, or positions.
-- If an instruction cannot be resolved deterministically, omit it.
+Input JSON contains instructions.
+For each instruction, return the element(s) from the images/JSON with the highest logical match.
+Return multiple elements if applicable.
+ReferenceElement must contain all the element data - type, position and font - copy the element from the documentStructure JSON
+PageNumber is the page that the ReferenceElement is on.
 
-FIELD RESOLUTION RULES
-----------------------
-For instructions with IsInField = true:
-- Locate the appropriate formTextField in DocumentFields.json.
-- Locate the nearest descriptive label (e.g., ""Name:"", ""Date:"") in documentStructure.json.
-- Copy Font and FontSize from the label text.
-- Place the text inside the form field rectangle.
-- Use the field’s page number.
+Example:
+Instruction: “Enter first name” ? return all text fields labeled “First Name:” across all pages.
 
-FREE TEXT RESOLUTION RULES
---------------------------
-For instructions with IsInField = false:
-- For document headers or titles:
-  - Use page 1.
-  - Use the dominant font family on page 1.
-  - Font size must be larger than body text.
-  - Horizontally center the text.
-  - Place near the top margin.
-- For other free text:
-  - Anchor near the referenced section if possible.
-  - Otherwise, omit the instruction.
-
-OUTPUT RULES
-------------
-- You must output ONLY the final resolved TextElement array.
-- Do NOT output TextElementInstructionsRoot.
-- Do NOT explain or describe your reasoning.
-- Do NOT include markdown or comments.
-
-TextElementInstructionsRoot :
-";
+JSON Commands Input:";
 
         public TextElementsExtraction(GenericGptClient genericGptClient)
         {
@@ -122,20 +81,46 @@ TextElementInstructionsRoot :
         }
         internal async Task<IEnumerable<TextElement>> GetTextElements(IEnumerable<byte[]> documentPagesAsImages, string documentFields, string documentStructure, string prompt)
         {
-
+            //Step 1: extruct instruction and text from the prompt
             var textElementsExtractions = await _genericGptClient.RunModelByText<TextElementInstructionsRoot>(string.Concat(PROMPT_ANELIZE_TEXT_ELEMENT_INSTRUCTIONS,prompt));
 
+            //Step 2: Get page , Is multiple and releted objects
             var requestFiles = new List<byte[]>(documentPagesAsImages);
-           
-            var getTextElementsInstructions = string.Concat(GET_TEXT_ELEMENTS_INSTRUCTIONS, JsonConvert.SerializeObject(textElementsExtractions.TextElementInstructions));
+            documentStructure = $"documentStructure:{documentStructure}";
+            var commands = JsonConvert.SerializeObject(textElementsExtractions.TextElementInstructions.Select(x => x.Command));
+            var textElementsMetadataInstructions = string.Concat(TEXT_ELEMENTS_METADATA_INSTRUCTIONS, commands);
+            var textElementsMetadataRoot = await _genericGptClient.RunModelByFiles<TextCommandRelatedObjectsRoot>(requestFiles,
+                new[] { documentStructure }
+                , textElementsMetadataInstructions);
+
+
+            var textCommandRelatedObjectsWithText = MapTextCommandRelatedObjectsWithText(textElementsExtractions.TextElementInstructions,textElementsMetadataRoot.TextCommandsRelatedObjects);
+            var getTextElementsInstructions = string.Concat(GET_TEXT_ELEMENTS_INSTRUCTIONS, JsonConvert.SerializeObject(textCommandRelatedObjectsWithText));
             var result = await _genericGptClient.RunModelByFiles<RootTextElement>(requestFiles,
-                new[] { documentFields , documentStructure }
+                new[] { documentStructure }
                 , getTextElementsInstructions);
             
             return result.TextElementArray;
 
         }
 
-        
+        private IEnumerable<TextCommandRelatedObjectsWithText> MapTextCommandRelatedObjectsWithText(TextElementInstructions[] textElementInstructions, TextCommandRelatedObjects[] textCommandsRelatedObjects)
+        {
+            foreach (var textCommandRelatedObjects in textCommandsRelatedObjects)
+            {
+                var textElementInstruction = textElementInstructions.First(x=>x.Command == textCommandRelatedObjects.Command);
+                yield return new TextCommandRelatedObjectsWithText
+                {
+                    Command = textCommandRelatedObjects.Command,
+                    Text = textElementInstruction.Text,
+                    TextCommandRelatedObject = textCommandRelatedObjects.TextCommandRelatedObject.Select(textCommandRelatedObject =>
+                        new TextCommandRelatedObject<dynamic>
+                        {
+                            PageNumber = textCommandRelatedObject.PageNumber,
+                            ReferenceElement = JsonConvert.DeserializeObject(textCommandRelatedObject.ReferenceElement)
+                        }).ToArray()
+                };
+            }
+        }
     }
 }

@@ -9,6 +9,12 @@ namespace ApryseDataExtractor
 {
     public class DocumentFieldExtractor : IDocumentFieldExtractor
     {
+        private static readonly string[] TrialPhrases =
+       {
+            "trial mode",
+            "the trial is limited to 100 pages"
+        };
+
         public DocumentFieldExtractor(ApryseDataExtractorConfiguration config)
         {
             PDFNet.Initialize(config.ApryseApiKey);
@@ -329,6 +335,9 @@ namespace ApryseDataExtractor
                 var documentStructure =
                     JsonConvert.DeserializeObject<DocumentStructure>(documentStructureJson);
 
+
+                CleanTrialArtifacts(documentStructure);
+
                 return documentStructure;
             }
             finally
@@ -337,6 +346,41 @@ namespace ApryseDataExtractor
                 if (File.Exists(tempFilePath))
                     File.Delete(tempFilePath);
             }
+        }
+
+        private static void CleanTrialArtifacts(DocumentStructure documentStructure)
+        {
+            if (documentStructure?.Pages == null)
+                return;
+
+            // Remove trial elements and empty pages
+            documentStructure.Pages = documentStructure.Pages
+                .Select(page =>
+                {
+                    page.Elements = page.Elements?
+                        .Where(e => !ContainsTrialMode(e))
+                        .ToList();
+
+                    return page;
+                })
+                .Where(p => p.Elements?.Any() == true)
+                .ToList();
+
+            // Reindex page numbers (downshift automatically)
+            for (int i = 0; i < documentStructure.Pages.Count; i++)
+            {
+                documentStructure.Pages[i].Properties.PageNumber = i + 1;
+            }
+        }
+
+      
+        private static bool ContainsTrialMode(Models.Element element)
+        {
+            return element?.Contents?.Any(c =>
+                !string.IsNullOrEmpty(c.Text) &&
+                TrialPhrases.Any(p =>
+                    c.Text.Contains(p, StringComparison.OrdinalIgnoreCase)))
+                == true;
         }
 
         public async Task<DocumentFieldsPosition> GetDocumentFields(byte[] documentBytes, string languages)

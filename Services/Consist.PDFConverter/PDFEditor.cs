@@ -46,8 +46,15 @@ namespace Consist.PDFTools
             var graphics = page.Graphics;
             var font = CreateFont(element);
             var brush = new PdfSolidBrush(new PdfColor(0, 0, 0));
-            var yPosition = CalculateYPosition(page, element);
-            var rectangle = CreateRectangleF((float)element.X, yPosition, (float)element.Width, (float)element.Height);
+            //var yPosition = CalculateYPosition(page, element);
+
+            // Measure text size based on content, font and font size (ignore element.Width / element.Height)
+            var text = element.Text ?? string.Empty;
+            var textSize = font.MeasureString(text, new PdfStringFormat());
+            float autoWidth = textSize.Width;
+            float autoHeight = textSize.Height;
+
+            var rectangle = CreateRectangleF((float)element.X, (float)element.Y, autoWidth, autoHeight);
             graphics.DrawString(element.Text ?? string.Empty, font, brush, rectangle);
         }
 
@@ -66,12 +73,6 @@ namespace Consist.PDFTools
             {
                 return new PdfStandardFont(PdfFontFamily.Helvetica, element.FontSize);
             }
-        }
-
-        private float CalculateYPosition(PdfLoadedPage page, TextElement element)
-        {
-            var pageSize = page.Size;
-            return (float)(pageSize.Height - element.Y - element.Height);
         }
 
         private byte[] SaveDocument(PdfLoadedDocument document)
