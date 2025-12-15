@@ -9,6 +9,7 @@ public class GPTDataExtractionClient : IAIModelDataExtractionClient
         private readonly IServiceProvider _serviceProvider;
 
         private TemplateExtractorFromPDF GptTemplateExtractionService => _serviceProvider.GetService<TemplateExtractorFromPDF>();
+        private TextElementsExtraction TextElementsExtraction => _serviceProvider.GetService<TextElementsExtraction>();
 
         private ImageDataExtructor ImageFieldsInformationExtractor => _serviceProvider.GetService<ImageDataExtructor>();
         private GenericGptClient GenericGptClient => _serviceProvider.GetService<GenericGptClient>();
@@ -18,9 +19,9 @@ public class GPTDataExtractionClient : IAIModelDataExtractionClient
             _serviceProvider = serviceProvider;
         }
 
-        public Task<TemplateInfoFromPDFwithFields> ExtractTemplateInformationFromPDF(byte[] pdfFile)
+        public Task<TemplateInfoFromPDFwithFields> ExtractTemplateInformationFromPDF(IEnumerable<byte[]> documentPagesAsImages)
         {
-            return GptTemplateExtractionService.ExtractAsync(pdfFile);
+            return GptTemplateExtractionService.ExtractAsync(documentPagesAsImages);
         }
 
         public Task<CreateTemplateInformation> ExtractTemplateInformationFromPrompt(string templateInstructions)
@@ -34,6 +35,11 @@ Text:{templateInstructions}";
         public Task<FieldsPredictions> GetFieldsPredictionsFromImages(IEnumerable<ExTemplatFlowElement> documentFields, TemplateInfoFromPDFwithFields templateInformationFromPDF, List<byte[]> labeledImages)
         {
             return ImageFieldsInformationExtractor.GetFieldPredictionByImageFiledsNumbers(documentFields, templateInformationFromPDF, labeledImages);
+        }
+
+        public  Task<IEnumerable<TextElement>> GetTextElements(IEnumerable<byte[]> documentPagesAsImages, string documentFields, string documentStructure, string prompt)
+        {
+            return TextElementsExtraction.GetTextElements(documentPagesAsImages, documentFields, documentStructure, prompt);
         }
     }
 }

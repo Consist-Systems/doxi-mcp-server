@@ -17,8 +17,4 @@
 	  <PackageReference Include="NJsonSchema.CodeGeneration.CSharp" Version="11.5.2" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Consist.PDFConverter\Consist.PDFTools.csproj" />
-  </ItemGroup>
-
 </Project>

@@ -1,17 +1,20 @@
 using Consist.Doxi.MCPServer.Domain.AILogic;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Consist.Doxi.MCPServer.Controllers
 {
     [ApiController]
     public class DoxiAIController : ControllerBase
     {
-        private readonly TemplateLogic _templateLogic;
-
-        public DoxiAIController(TemplateLogic templateLogic)
+        private readonly IServiceProvider _serviceProvider;
+        private TemplateLogic TemplateLogic => _serviceProvider.GetService<TemplateLogic>();
+        private DocumentEditorLogic DocumentEditorLogic => _serviceProvider.GetService<DocumentEditorLogic>();
+        
+        public DoxiAIController(IServiceProvider serviceProvider)
         {
-            _templateLogic = templateLogic;
+            _serviceProvider = serviceProvider;
         }
 
         /// <summary>
@@ -39,9 +42,34 @@ namespace Consist.Doxi.MCPServer.Controllers
                 templateDocument = memoryStream.ToArray();
             }
 
-            var result = await _templateLogic.AddTemplate(username, password, templateDocument, templateInstructions);
+            var result = await TemplateLogic.AddTemplate(username, password, templateDocument, templateInstructions);
             
             return Ok(result);
+        }
+
+        [HttpPut("{tenant}/v6/pdf")]
+        public async Task<IActionResult> SetTexts([FromForm] string? prompt,
+            [FromForm][Required] IFormFile pdfFile)
+        {
+            byte[] pdfDocumentByte;
+            using (var memoryStream = new MemoryStream())
+            {
+                await pdfFile.CopyToAsync(memoryStream);
+                pdfDocumentByte = memoryStream.ToArray();
+            }
+
+            // Process PDF
+           var resultPdfBytes = await DocumentEditorLogic.AddTexts(pdfDocumentByte, prompt);
+
+            if (resultPdfBytes == null || resultPdfBytes.Length == 0)
+                return StatusCode(StatusCodes.Status500InternalServerError, "PDF processing failed.");
+
+            // Return PDF file
+            return File(
+                fileContents: resultPdfBytes,
+                contentType: "application/pdf",
+                fileDownloadName: "edited.pdf"
+            );
         }
     }
 }

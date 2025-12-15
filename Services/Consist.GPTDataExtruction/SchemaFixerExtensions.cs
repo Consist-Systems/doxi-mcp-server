@@ -9,230 +9,236 @@ namespace Consist.GPTDataExtruction.Extensions
     {
         public static JsonNode ToOpenAISchemaNode<T>(this JsonSchema _)
         {
-            // Step 1 — Generate raw schema
+            // Generate raw schema
             var raw = JsonSchema.FromType<T>();
             JObject root = JObject.Parse(raw.ToJson());
 
-            // Step 2 — Force valid OpenAI root fields
+            // Force OpenAI-compatible root
             root["title"] = typeof(T).Name;
             root["type"] = "object";
 
             // ----------------------------------------------------------
-            // 🔥 ORDER MATTERS — DO NOT MOVE THESE STEPS
+            // ORDER IS CRITICAL
             // ----------------------------------------------------------
 
             // 1. Remove $schema
             RemoveDollarSchema(root);
 
-            // 2. Remove format fields
+            // 2. Remove format
             RemoveFormatRecursively(root);
 
-            // 3. Flatten $ref references
+            // 3. Remove allOf (OpenAI does NOT support it)
+            RemoveAllOf(root);
+
+            // 4. Flatten $ref
             if (root["definitions"] is JObject defs)
                 FlattenAllRefs(root, defs);
 
             root.Remove("definitions");
 
-            // 4. Normalize nullable types: ["string","null"] → "string"
+            // 5. Normalize nullable unions
             NormalizeNullableTypes(root);
 
-            // 5. Remove oneOf constructs
+            // 6. Remove oneOf
             RemoveOneOf(root);
 
-            // 6. FIRST PASS: Convert "integer" → "number"
+            // 7. Convert integer → number
             FixIntegerTypes(root);
 
-            // 7. Add required[] to every object
+            // 8. Add required[] safely
             AddRequiredRecursive(root);
 
-            // 8. Enforce additionalProperties:false on all objects
+            // 9. Enforce additionalProperties:false
             EnforceAdditionalPropertiesFalse(root);
 
-            // 9. FINAL PASS: Convert integer → number AGAIN
+            // 10. Final integer pass
             FixIntegerTypes(root);
 
-            // Return clean JSON schema
             return JsonNode.Parse(root.ToString());
         }
 
         // ----------------------------------------------------------
-        // REMOVE $schema
+        // Remove $schema
         // ----------------------------------------------------------
         private static void RemoveDollarSchema(JToken token)
         {
-            if (token.Type == JTokenType.Object)
+            if (token is JObject obj)
             {
-                var obj = (JObject)token;
-
-                if (obj.Property("$schema") != null)
-                    obj.Remove("$schema");
-
+                obj.Remove("$schema");
                 foreach (var p in obj.Properties())
                     RemoveDollarSchema(p.Value);
             }
-            else if (token.Type == JTokenType.Array)
+            else if (token is JArray arr)
             {
-                foreach (var child in token.Children())
-                    RemoveDollarSchema(child);
+                foreach (var c in arr)
+                    RemoveDollarSchema(c);
             }
         }
 
         // ----------------------------------------------------------
-        // REMOVE "format"
+        // Remove format
         // ----------------------------------------------------------
         private static void RemoveFormatRecursively(JToken token)
         {
-            if (token.Type == JTokenType.Object)
+            if (token is JObject obj)
             {
-                var obj = (JObject)token;
-
-                if (obj.Property("format") != null)
-                    obj.Remove("format");
-
+                obj.Remove("format");
                 foreach (var p in obj.Properties())
                     RemoveFormatRecursively(p.Value);
             }
-            else if (token.Type == JTokenType.Array)
+            else if (token is JArray arr)
             {
-                foreach (var child in token.Children())
-                    RemoveFormatRecursively(child);
+                foreach (var c in arr)
+                    RemoveFormatRecursively(c);
             }
         }
 
         // ----------------------------------------------------------
-        // Convert type "integer" → "number"
+        // Remove allOf (MANDATORY for OpenAI)
         // ----------------------------------------------------------
-        private static void FixIntegerTypes(JToken token)
+        private static void RemoveAllOf(JToken token)
         {
-            if (token.Type == JTokenType.Object)
+            if (token is JObject obj)
             {
-                var obj = (JObject)token;
+                if (obj["allOf"] is JArray allOf)
+                {
+                    obj.Remove("allOf");
 
-                if (obj["type"]?.ToString() == "integer")
-                    obj["type"] = "number";
+                    foreach (var entry in allOf.OfType<JObject>())
+                    {
+                        foreach (var prop in entry.Properties())
+                        {
+                            if (obj[prop.Name] == null)
+                                obj[prop.Name] = prop.Value.DeepClone();
+                        }
+                    }
+                }
 
                 foreach (var p in obj.Properties())
-                    FixIntegerTypes(p.Value);
+                    RemoveAllOf(p.Value);
             }
-            else if (token.Type == JTokenType.Array)
+            else if (token is JArray arr)
             {
-                foreach (var child in token.Children())
-                    FixIntegerTypes(child);
+                foreach (var c in arr)
+                    RemoveAllOf(c);
             }
         }
 
         // ----------------------------------------------------------
-        // Flatten all $ref references
+        // Flatten $ref
         // ----------------------------------------------------------
         private static void FlattenAllRefs(JToken token, JObject definitions)
         {
-            if (token.Type == JTokenType.Object)
+            if (token is JObject obj)
             {
-                var obj = (JObject)token;
-
                 if (obj.TryGetValue("$ref", out var refToken))
                 {
-                    string refPath = refToken.ToString().Replace("#/definitions/", "");
+                    string refName = refToken.ToString().Replace("#/definitions/", "");
                     obj.Remove("$ref");
 
-                    if (definitions.TryGetValue(refPath, out var def))
+                    if (definitions.TryGetValue(refName, out var def))
                     {
-                        foreach (var prop in ((JObject)def).Properties())
-                        {
-                            obj[prop.Name] = prop.Value.DeepClone();
-                        }
+                        foreach (var p in ((JObject)def).Properties())
+                            obj[p.Name] = p.Value.DeepClone();
                     }
                 }
 
                 foreach (var p in obj.Properties())
                     FlattenAllRefs(p.Value, definitions);
             }
-            else if (token.Type == JTokenType.Array)
+            else if (token is JArray arr)
             {
-                foreach (var child in token.Children())
-                    FlattenAllRefs(child, definitions);
+                foreach (var c in arr)
+                    FlattenAllRefs(c, definitions);
             }
         }
 
         // ----------------------------------------------------------
-        // Remove oneOf blocks
+        // Remove oneOf
         // ----------------------------------------------------------
         private static void RemoveOneOf(JToken token)
         {
-            if (token.Type == JTokenType.Object)
+            if (token is JObject obj)
             {
-                var obj = (JObject)token;
-
                 if (obj["oneOf"] is JArray arr)
                 {
-                    var concrete = arr
-                        .OfType<JObject>()
-                        .FirstOrDefault(o =>
-                            o["type"]?.ToString() == "object" ||
-                            o["properties"] is JObject);
-
                     obj.Remove("oneOf");
 
-                    if (concrete != null)
+                    var chosen = arr
+                        .OfType<JObject>()
+                        .FirstOrDefault(o => o["properties"] != null || o["type"]?.ToString() == "object");
+
+                    if (chosen != null)
                     {
-                        foreach (var prop in concrete.Properties())
-                            obj[prop.Name] = prop.Value.DeepClone();
-                    }
-                    else
-                    {
-                        obj["type"] = "object";
+                        foreach (var p in chosen.Properties())
+                            obj[p.Name] = p.Value.DeepClone();
                     }
                 }
 
                 foreach (var p in obj.Properties())
                     RemoveOneOf(p.Value);
             }
-            else if (token.Type == JTokenType.Array)
+            else if (token is JArray a)
             {
-                foreach (var child in token.Children())
-                    RemoveOneOf(child);
+                foreach (var c in a)
+                    RemoveOneOf(c);
             }
         }
 
         // ----------------------------------------------------------
-        // Fix nullable union types
+        // Normalize nullable unions
         // ----------------------------------------------------------
         private static void NormalizeNullableTypes(JToken token)
         {
-            if (token.Type == JTokenType.Object)
+            if (token is JObject obj)
             {
-                var obj = (JObject)token;
-
                 if (obj["type"] is JArray arr)
                 {
-                    string main = arr
+                    obj["type"] = arr
                         .Select(v => v.ToString())
                         .FirstOrDefault(v => v != "null") ?? "string";
-
-                    obj["type"] = main;
                 }
 
                 foreach (var p in obj.Properties())
                     NormalizeNullableTypes(p.Value);
             }
-            else if (token.Type == JTokenType.Array)
+            else if (token is JArray a)
             {
-                foreach (var child in token.Children())
-                    NormalizeNullableTypes(child);
+                foreach (var c in a)
+                    NormalizeNullableTypes(c);
             }
         }
 
         // ----------------------------------------------------------
-        // Add required[] to all objects
+        // Convert integer → number
+        // ----------------------------------------------------------
+        private static void FixIntegerTypes(JToken token)
+        {
+            if (token is JObject obj)
+            {
+                if (obj["type"]?.ToString() == "integer")
+                    obj["type"] = "number";
+
+                foreach (var p in obj.Properties())
+                    FixIntegerTypes(p.Value);
+            }
+            else if (token is JArray arr)
+            {
+                foreach (var c in arr)
+                    FixIntegerTypes(c);
+            }
+        }
+
+        // ----------------------------------------------------------
+        // Add required[] safely
         // ----------------------------------------------------------
         private static void AddRequiredRecursive(JToken token)
         {
-            if (token.Type == JTokenType.Object)
+            if (token is JObject obj)
             {
-                var obj = (JObject)token;
-
                 if (obj["type"]?.ToString() == "object" &&
-                    obj["properties"] is JObject props)
+                    obj["properties"] is JObject props &&
+                    props.Properties().Any())
                 {
                     obj["required"] = new JArray(props.Properties().Select(p => p.Name));
                 }
@@ -240,41 +246,34 @@ namespace Consist.GPTDataExtruction.Extensions
                 foreach (var p in obj.Properties())
                     AddRequiredRecursive(p.Value);
             }
-            else if (token.Type == JTokenType.Array)
+            else if (token is JArray arr)
             {
-                foreach (var child in token.Children())
-                    AddRequiredRecursive(child);
+                foreach (var c in arr)
+                    AddRequiredRecursive(c);
             }
         }
 
         // ----------------------------------------------------------
-        // Force additionalProperties:false on all objects
+        // Enforce additionalProperties:false
         // ----------------------------------------------------------
         private static void EnforceAdditionalPropertiesFalse(JToken token)
         {
-            if (token.Type == JTokenType.Object)
+            if (token is JObject obj)
             {
-                var obj = (JObject)token;
-
                 if (obj["type"]?.ToString() == "object")
                 {
-                    if (obj["additionalProperties"] == null)
-                        obj["additionalProperties"] = false;
-
-                    if (obj["properties"] == null)
-                        obj["properties"] = new JObject();
-
-                    if (obj["required"] == null)
-                        obj["required"] = new JArray();
+                    obj["additionalProperties"] ??= false;
+                    obj["properties"] ??= new JObject();
+                    obj["required"] ??= new JArray();
                 }
 
                 foreach (var p in obj.Properties())
                     EnforceAdditionalPropertiesFalse(p.Value);
             }
-            else if (token.Type == JTokenType.Array)
+            else if (token is JArray arr)
             {
-                foreach (var child in token.Children())
-                    EnforceAdditionalPropertiesFalse(child);
+                foreach (var c in arr)
+                    EnforceAdditionalPropertiesFalse(c);
             }
         }
     }

@@ -20,10 +20,8 @@ namespace Consist.ProjectName.McpTools
         }
 
         [McpServerTool(Name = "AddTexts"), Description("Adds text elements to a PDF document and returns the modified PDF. Accepts PDF file as base64-encoded string and text elements as JSON array.")]
-        public async Task<DataContent> AddTexts(string pdfFileBase64, string textElementsJson)
+        public async Task<DataContent> AddTexts(string pdfFileBase64, string prompt)
         {
-            var textElements = JsonSerializer.Deserialize<List<TextElement>>(textElementsJson) 
-                ?? throw new ArgumentException("Invalid text elements JSON", nameof(textElementsJson));
             
             byte[] pdfFile;
             try
@@ -35,7 +33,7 @@ namespace Consist.ProjectName.McpTools
                 throw new ArgumentException("Invalid base64 PDF file", nameof(pdfFileBase64), ex);
             }
             
-            var result = await DocumentEditorLogic.AddTexts(pdfFile, textElements);
+            var result = await DocumentEditorLogic.AddTexts(pdfFile, prompt);
             return new DataContent(result, "application/pdf");
         }
     }

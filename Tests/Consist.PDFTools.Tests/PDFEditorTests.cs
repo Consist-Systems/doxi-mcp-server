@@ -24,24 +24,13 @@ namespace Consist.PDFTools.Tests
             {
                 new TextElement
                 {
-                    Text = "Test Text",
-                    Font = "Helvetica",
-                    FontSize = 12,
-                    X = 100,
-                    Y = 100,
-                    Width = 200,
-                    Height = 20,
-                    PageNumber = 1
-                },
-                new TextElement
-                {
-                    Text = "Test Text",
-                    Font = "times",
-                    FontSize = 12,
-                    X = 200,
-                    Y = 200,
-                    Width = 200,
-                    Height = 20,
+                    Text = "ABCDEFG",
+                    Font = "Calibri",
+                    FontSize = 11,
+                    X = 100.755,
+                    Y = 111,
+                    Width = 155,
+                    Height = 16.183,
                     PageNumber = 1
                 }
             };

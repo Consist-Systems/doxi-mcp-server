@@ -309,6 +309,65 @@ namespace ApryseDataExtractor
             };
         }
 
+        public async Task<DocumentStructure> GetDocumentStructure(byte[] documentBytes, string languages)
+        {
+            var tempFilePath = Path.GetTempFileName().Replace(".tmp", ".pdf");
+            File.WriteAllBytes(tempFilePath, documentBytes);
+
+            try
+            {
+                DataExtractionOptions options = new DataExtractionOptions();
+                if(languages != null) 
+                    options.SetLanguage(languages);
+
+                var documentStructureJson =
+                    DataExtractionModule.ExtractData(
+                        tempFilePath,
+                        DataExtractionModule.DataExtractionEngine.e_doc_structure,
+                        options);
+
+                var documentStructure =
+                    JsonConvert.DeserializeObject<DocumentStructure>(documentStructureJson);
+
+                return documentStructure;
+            }
+            finally
+
+            {
+                if (File.Exists(tempFilePath))
+                    File.Delete(tempFilePath);
+            }
+        }
+
+        public async Task<DocumentFieldsPosition> GetDocumentFields(byte[] documentBytes, string languages)
+        {
+            var tempFilePath = Path.GetTempFileName().Replace(".tmp", ".pdf");
+            File.WriteAllBytes(tempFilePath, documentBytes);
+
+            try
+            {
+                DataExtractionOptions options = new DataExtractionOptions();
+                if(languages != null) 
+                    options.SetLanguage(languages);
+
+                var documentFieldsPositionJson =
+                   DataExtractionModule.ExtractData(
+                       tempFilePath,
+                       DataExtractionModule.DataExtractionEngine.e_form,
+                       options);
+
+                var documentFieldsPosition =
+                    JsonConvert.DeserializeObject<DocumentFieldsPosition>(documentFieldsPositionJson);
+                return documentFieldsPosition;
+            }
+            finally
+
+            {
+                if (File.Exists(tempFilePath))
+                    File.Delete(tempFilePath);
+            }
+        }
+
 
         // --------------------------------------------------------------------
         // INTERNAL MODELS

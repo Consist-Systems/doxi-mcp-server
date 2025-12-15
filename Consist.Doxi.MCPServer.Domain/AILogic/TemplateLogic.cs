@@ -42,7 +42,8 @@ namespace Consist.Doxi.MCPServer.Domain.AILogic
         {
             CreateTemplateInformation templateInformationFromPrompt=null;
             templateInformationFromPrompt = await _aIModelDataExtractionClient.ExtractTemplateInformationFromPrompt(templateInstructions);
-            var templateInformationFromPDF = await _aIModelDataExtractionClient.ExtractTemplateInformationFromPDF(templateDocument);
+            var documentPagesAsImages = await _documentConverter.PDFToImages(templateDocument);
+            var templateInformationFromPDF = await _aIModelDataExtractionClient.ExtractTemplateInformationFromPDF(documentPagesAsImages);
             var documentFields = await _documentFieldExtractor.GetDocumentElements(templateDocument, templateInformationFromPDF.Languages);
             
             documentFields = FixOverlappingFields(documentFields.ToList());

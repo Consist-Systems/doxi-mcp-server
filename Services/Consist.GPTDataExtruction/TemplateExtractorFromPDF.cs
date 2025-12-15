@@ -1,6 +1,5 @@
 ﻿using System.Text.Json;
 using Consist.GPTDataExtruction.Model;
-using Consist.PDFTools;
 using Microsoft.Extensions.Logging;
 
 namespace Consist.GPTDataExtruction
@@ -62,29 +61,22 @@ Use all pages together.";
 
         private readonly ILogger<TemplateExtractorFromPDF> _logger;
         private readonly GPTDataExtructionConfiguration _config;
-        private readonly IDocumentConverter _documentConverter;
         private readonly GenericGptClient _gptClient;
 
         public TemplateExtractorFromPDF(
             ILogger<TemplateExtractorFromPDF> logger,
             GPTDataExtructionConfiguration config,
-            IDocumentConverter documentConverter,
             GenericGptClient gptClient)
         {
             _logger = logger;
             _config = config;
-            _documentConverter = documentConverter;
             _gptClient = gptClient;
         }
 
-        public async Task<TemplateInfoFromPDFwithFields> ExtractAsync(byte[] pdfBytes)
+        public async Task<TemplateInfoFromPDFwithFields> ExtractAsync(IEnumerable<byte[]> documentPagesAsImages)
         {
-            var images = (await _documentConverter.PDFToImages(pdfBytes)).ToList();
-            if (!images.Any())
-                throw new Exception("PDF contains no pages or failed to convert to images.");
-
             // Phase 1: extract template structure (no fields)
-            var structure = await ExtractStructureAsync(images);
+            var structure = await ExtractStructureAsync(documentPagesAsImages);
 
             // Convert to TemplateInfoFromPDFwithFields
             var result = new TemplateInfoFromPDFwithFields
@@ -110,7 +102,7 @@ Use all pages together.";
             // Phase 2: for each signer, extract fields for that signer
             foreach (var signer in result.Signers)
             {
-                signer.Fields = await ExtractFieldsForSignerAsync(images, signer.Title);
+                signer.Fields = await ExtractFieldsForSignerAsync(documentPagesAsImages, signer.Title);
             }
 
             _logger.LogDebug("Final TemplateInfoFromPDFwithFields: " +
@@ -121,7 +113,7 @@ Use all pages together.";
 
         #region Phase 1: Structure
 
-        private async Task<TemplateInfoFromPDF> ExtractStructureAsync(List<byte[]> images)
+        private async Task<TemplateInfoFromPDF> ExtractStructureAsync(IEnumerable<byte[]> images)
         {
             var batches = Batch(images, _config.TemplateExtractorFromPDFConfig.MaxPagesPerBatch);
 
@@ -185,7 +177,7 @@ Use all pages together.";
 
         #region Phase 2: Fields per signer
 
-        private async Task<string[]> ExtractFieldsForSignerAsync(List<byte[]> images, string signerTitle)
+        private async Task<string[]> ExtractFieldsForSignerAsync(IEnumerable<byte[]> images, string signerTitle)
         {
             var batches = Batch(images, _config.TemplateExtractorFromPDFConfig.MaxPagesPerBatch);
             var fields = new HashSet<string>();
@@ -221,10 +213,10 @@ Use all pages together.";
 
         #region Helpers
 
-        private List<List<byte[]>> Batch(List<byte[]> images, int batchSize)
+        private List<List<byte[]>> Batch(IEnumerable<byte[]> images, int batchSize)
         {
             var result = new List<List<byte[]>>();
-            for (int i = 0; i < images.Count; i += batchSize)
+            for (int i = 0; i < images.Count(); i += batchSize)
                 result.Add(images.Skip(i).Take(batchSize).ToList());
             return result;
         }

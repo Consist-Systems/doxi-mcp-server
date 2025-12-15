@@ -1,4 +1,5 @@
-﻿using Consist.Doxi.MCPServer.Domain.AILogic;
+using Consist.Doxi.MCPServer.Domain.AILogic;
+using Consist.Doxi.MCPServer.Domain.Mapper;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Consist.Doxi.MCPServer.Domain
@@ -12,7 +13,11 @@ namespace Consist.Doxi.MCPServer.Domain
             services.AddScoped<TemplateLogic>();
             services.AddScoped<DocumentEditorLogic>();
             
-
+            // Register AutoMapper for this project
+            services.AddAutoMapper(cfg =>
+            {
+                cfg.AddProfile<DomainMappingProfile>();
+            }, typeof(DomainMappingProfile).Assembly);
 
             return services;
         }

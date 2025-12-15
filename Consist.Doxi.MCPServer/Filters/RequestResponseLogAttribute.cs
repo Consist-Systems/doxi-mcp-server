@@ -73,7 +73,7 @@ namespace Consist.ProjectName.Filters
 
             if (contentTypes.Contains(content.GetType()))
                 response = JsonConvert.SerializeObject(content);
-            else if (!noContentTypes.Contains(content.GetType()))
+            else if (!noContentTypes.Contains(content.GetType()) && content.ContentType != "application/pdf")
                 response = JsonConvert.SerializeObject(content.Value);
 
             var requestId = context.HttpContext?.Request.GetHashCode();

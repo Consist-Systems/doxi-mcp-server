@@ -1,6 +1,7 @@
+using Consist.GPTDataExtruction.Extensions;
 using Flurl.Http;
 using Microsoft.Extensions.Logging;
-using Consist.GPTDataExtruction.Extensions;
+using Microsoft.VisualBasic.FileIO;
 
 namespace Consist.GPTDataExtruction
 {
@@ -205,7 +206,54 @@ namespace Consist.GPTDataExtruction
             return doc.RootElement.Clone();
         }
 
+        public async Task<TResponse> RunModelByFiles<TResponse>(IEnumerable<byte[]> requestFiles,IEnumerable<string> inputDatas, string instructions)
+            where TResponse : class
+        {
+            var messages = new List<object>
+            {
+                new
+                {
+                    role = "user",
+                    content = new object[]
+                    {
+                        new { type = "input_text", text = instructions }
+                    }
+                }
+            };
 
+            foreach (var file in requestFiles)
+            {
+                messages.Add(new
+                {
+                    role = "user",
+                    content = new object[]
+                    {
+                        new
+                        {
+                            type = "input_image",
+                            image_url = $"data:image/png;base64,{Convert.ToBase64String(file)}"
+                        }
+                    }
+                });
+            }
 
+            foreach (var inputData in inputDatas)
+            {
+                messages.Add(new
+                {
+                    role = "user",
+                    content = new object[]
+                    {
+                        new
+                        {
+                            type = "input_text",
+                            text = inputData
+                        }
+                    }
+                });
+            }
+
+            return await CallGptAsync<TResponse>(messages.ToArray());
+        }
     }
 }
