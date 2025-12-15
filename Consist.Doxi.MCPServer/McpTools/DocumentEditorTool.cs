@@ -19,18 +19,19 @@ namespace Consist.ProjectName.McpTools
             _serviceProvider = serviceProvider;
         }
 
-        [McpServerTool(Name = "AddTexts"), Description("Adds text elements to a PDF document and returns the modified PDF. Accepts PDF file as base64-encoded string and text elements as JSON array.")]
-        public async Task<DataContent> AddTexts(string pdfFileBase64, string prompt)
+        [McpServerTool(Name = "AddTexts"), Description(@"Adds text elements to a PDF document and returns the modified PDF. 
+        Accepts PDF file as base64-encoded string and prompt text of text to add to the document")]
+        public async Task<DataContent> AddTexts(string prompt, string inputFileBase64)
         {
             
             byte[] pdfFile;
             try
             {
-                pdfFile = Convert.FromBase64String(pdfFileBase64);
+                pdfFile = Convert.FromBase64String(inputFileBase64);
             }
             catch (FormatException ex)
             {
-                throw new ArgumentException("Invalid base64 PDF file", nameof(pdfFileBase64), ex);
+                throw new ArgumentException("Invalid base64 PDF file", nameof(inputFileBase64), ex);
             }
             
             var result = await DocumentEditorLogic.AddTexts(pdfFile, prompt);

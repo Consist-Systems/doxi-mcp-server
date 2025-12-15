@@ -1,0 +1,12 @@
+﻿{
+  "mcpServers": {
+    "doxi": {
+      "type": "http",
+      "url": "http://localhost:5287/test1/mcp",
+      "metadataUrl": "http://localhost:5287/metadata",
+      "headers": {
+        "Accept": "application/json, text/event-stream"
+      }
+    }
+  }
+}

@@ -328,8 +328,8 @@
       "endpoint": "MCP Tool",
       "returns": "Modified PDF as DataContent (contentType=\"application/pdf\").",
       "params": {
-        "pdfFileBase64": "PDF document as base64-encoded string.",
-        "textElementsJson": "JSON string containing an array of TextElement objects. Each TextElement should have: Text (string), Font (string), FontSize (int), X (double), Y (double), Width (double), Height (double), PageNumber (int)."
+        "prompt": "texts to add to the document - value and position description",
+        "inputFileBase64": "PDF document as base64-encoded string."
       }
     }
 
