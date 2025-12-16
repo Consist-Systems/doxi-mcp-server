@@ -33,7 +33,8 @@ Rules:
    - ""Add document header""
    - ""Add footer note""
    - ""Insert payment note near payment section""
-8. Text must contain ONLY the exact text to be inserted, without explanation.
+8. Write the field name in the same language that it write in the prompt.
+9. Text must contain ONLY the exact text to be inserted, without explanation.
 
 Output:
 - Return ONLY a valid JSON array.
@@ -109,17 +110,26 @@ JSON Commands Input:";
             foreach (var textCommandRelatedObjects in textCommandsRelatedObjects)
             {
                 var textElementInstruction = textElementInstructions.First(x=>x.Command == textCommandRelatedObjects.Command);
-                yield return new TextCommandRelatedObjectsWithText
+                TextCommandRelatedObjectsWithText result = null;
+                try
                 {
-                    Command = textCommandRelatedObjects.Command,
-                    Text = textElementInstruction.Text,
-                    TextCommandRelatedObject = textCommandRelatedObjects.TextCommandRelatedObject.Select(textCommandRelatedObject =>
-                        new TextCommandRelatedObject<dynamic>
-                        {
-                            PageNumber = textCommandRelatedObject.PageNumber,
-                            ReferenceElement = JsonConvert.DeserializeObject(textCommandRelatedObject.ReferenceElement)
-                        }).ToArray()
-                };
+                    result = new TextCommandRelatedObjectsWithText
+                    {
+                        Command = textCommandRelatedObjects.Command,
+                        Text = textElementInstruction.Text,
+                        TextCommandRelatedObject = textCommandRelatedObjects.TextCommandRelatedObject.Select(textCommandRelatedObject =>
+                            new TextCommandRelatedObject<dynamic>
+                            {
+                                PageNumber = textCommandRelatedObject.PageNumber,
+                                ReferenceElement = JsonConvert.DeserializeObject(textCommandRelatedObject.ReferenceElement)
+                            }).ToArray()
+                    };
+                }
+                catch(Exception ex)
+                {
+                    //Do nothing
+                }
+                yield return result;
             }
         }
     }

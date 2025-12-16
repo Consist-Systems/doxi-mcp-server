@@ -1,705 +1,411 @@
 {
-  "toolName": "FlowsTool",
+  "toolName": "DoxiFlows",
   "category": "Flows",
-  "description": "Manages document signing flows, templates, kits, users and webhooks via the Doxi Sign API.",
+  "description": "Manages document signing flows, templates, kits, users and documents via the Doxi Sign API.",
   "docsBaseUrl": "https://apidocs.doxi-sign.com/",
+
+  "auth": {
+    "type": "basic",
+    "description": "Doxi API credentials",
+    "fields": [ "username", "password" ]
+  },
+
   "methods": [
     {
-      "name": "GetAllFlows",
-      "summary": "Retrieves all signing flows available for the current tenant.",
-      "endpoint": "GET /flow",
-      "returns": "JSON array of signing flow IDs and basic metadata (TextContent).",
-      "params": {
-        "username": "Doxi API username.",
-        "password": "Doxi API password."
+      "name": "getAllFlows",
+      "description": "Retrieves all signing flows available for the current tenant.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "outputSchema": {
+        "type": "array",
+        "description": "Array of signing flow IDs and basic metadata"
       }
     },
+
     {
-      "name": "GetDocument",
-      "summary": "Downloads the PDF document associated with a signing flow.",
-      "endpoint": "GET /flow/{signFlowId}/Document",
-      "returns": "PDF byte array as DataContent (contentType=\"application/pdf\").",
-      "params": {
-        "username": "Doxi API username.",
-        "password": "Doxi API password.",
-        "signFlowId": "The unique ID of the signing flow.",
-        "withSigns": "Boolean: if true, includes signatures/overlays; if false, returns the original document."
+      "name": "getFlow",
+      "description": "Retrieves full metadata for a signing flow.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "signFlowId": { "type": "string" }
+        },
+        "required": [ "signFlowId" ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "description": "Flow metadata JSON"
       }
     },
+
     {
-      "name": "GetFlow",
-      "summary": "Retrieves full metadata for a signing flow.",
-      "endpoint": "GET /flow/{signFlowId}",
-      "returns": "Flow metadata JSON (TextContent).",
-      "params": {
-        "username": "Doxi API username.",
-        "password": "Doxi API password.",
-        "signFlowId": "The unique ID of the signing flow."
+      "name": "getDocument",
+      "description": "Downloads the PDF document associated with a signing flow.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "signFlowId": { "type": "string" },
+          "withSigns": {
+            "type": "boolean",
+            "default": true
+          }
+        },
+        "required": [ "signFlowId" ]
+      },
+      "outputSchema": {
+        "$ref": "#/types/DataContent"
       }
     },
+
     {
-      "name": "SearchFlow",
-      "summary": "Searches signing flows by filters such as signer, date range, status, custom fields, kit, etc.",
-      "endpoint": "POST /ex/flow/search",
-      "returns": "Search result JSON with matching flows (TextContent).",
-      "params": {
-        "username": "Doxi API username.",
-        "password": "Doxi API password.",
-        "request": "GetFlowsByFilterRequest JSON (SignatureFlowStatus, Signer, Sender, FromDate, ToDate, Description, KitId, CustomFields, etc.)."
+      "name": "searchFlows",
+      "description": "Searches signing flows by filters such as signer, date range, status, kit, and custom fields.",
+      "inputSchema": {
+        "$ref": "#/types/GetFlowsByFilterRequest"
+      },
+      "outputSchema": {
+        "type": "object",
+        "description": "Search result with matching flows"
       }
     },
+
     {
-      "name": "GetFlowsStatus",
-      "summary": "Retrieves statuses for multiple flows in a single call.",
-      "endpoint": "POST /ex/flow/status",
-      "returns": "Array of flow status responses (TextContent, JSON).",
-      "params": {
-        "username": "Doxi API username.",
-        "password": "Doxi API password.",
-        "request": "GetFlowsStatusRequest JSON containing an array of SignFlowIds."
+      "name": "getFlowsStatus",
+      "description": "Retrieves statuses for multiple flows in a single call.",
+      "inputSchema": {
+        "$ref": "#/types/GetFlowsStatusRequest"
+      },
+      "outputSchema": {
+        "type": "array",
+        "description": "Array of flow status objects"
       }
     },
+
     {
-      "name": "GetFlowStatus",
-      "summary": "Gets the current status of a specific signing flow.",
-      "endpoint": "GET /ex/flow/{signFlowId}/status",
-      "returns": "GetFlowStatusResponse JSON (TextContent) including signers, sender, status, and custom fields.",
-      "params": {
-        "username": "Doxi API username.",
-        "password": "Doxi API password.",
-        "signFlowId": "The unique ID of the signing flow."
+      "name": "getFlowStatus",
+      "description": "Gets the current status of a specific signing flow.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "signFlowId": { "type": "string" }
+        },
+        "required": [ "signFlowId" ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "description": "Flow status including signers, sender, and custom fields"
       }
     },
+
     {
-      "name": "SetFlowAction",
-      "summary": "Sets an action on a flow such as approve, reject, delegate, etc.",
-      "endpoint": "POST /flow/{signFlowId}/action",
-      "returns": "JSON { success: true, data: { signFlowId } } (TextContent).",
-      "params": {
-        "username": "Doxi API username.",
-        "password": "Doxi API password.",
-        "signFlowId": "The unique ID of the signing flow.",
-        "request": "SetFlowActionRequest JSON describing the action (e.g. approve, reject, comment, delegate)."
+      "name": "setFlowAction",
+      "description": "Applies an action (approve, reject, delegate) to a signing flow.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "signFlowId": { "type": "string" },
+          "request": { "$ref": "#/types/SetFlowActionRequest" }
+        },
+        "required": [ "signFlowId", "request" ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "description": "Action execution result"
       }
     },
+
     {
-      "name": "GetFlowAttachments",
-      "summary": "Gets all attachments of a flow as a ZIP archive.",
-      "endpoint": "GET /flow/{signFlowId}/attachments",
-      "returns": "ZIP byte array as DataContent (contentType=\"application/octet-stream\").",
-      "params": {
-        "username": "Doxi API username.",
-        "password": "Doxi API password.",
-        "signFlowId": "The unique ID of the signing flow."
+      "name": "getFlowAttachments",
+      "description": "Downloads all attachments of a flow as a ZIP archive.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "signFlowId": { "type": "string" }
+        },
+        "required": [ "signFlowId" ]
+      },
+      "outputSchema": {
+        "$ref": "#/types/DataContent"
       }
     },
+
     {
-      "name": "GetFlowAttachmentField",
-      "summary": "Downloads a specific attachment field from a flow.",
-      "endpoint": "POST /flow/{signFlowId}/AttachmentField",
-      "returns": "Attachment bytes as DataContent (contentType=\"application/octet-stream\").",
-      "params": {
-        "username": "Doxi API username.",
-        "password": "Doxi API password.",
-        "signFlowId": "The unique ID of the signing flow.",
-        "request": "GetFlowAttachmentFieldRequest JSON (identifies the field/attachment to download)."
+      "name": "getFlowAttachmentField",
+      "description": "Downloads a specific attachment field from a flow.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "signFlowId": { "type": "string" },
+          "request": { "$ref": "#/types/GetFlowAttachmentFieldRequest" }
+        },
+        "required": [ "signFlowId", "request" ]
+      },
+      "outputSchema": {
+        "$ref": "#/types/DataContent"
       }
     },
+
     {
-      "name": "AddAttachmentAsBase64ToFlow",
-      "summary": "Adds a base64-encoded attachment to an existing flow.",
-      "endpoint": "POST /flow/{signFlowId}/attachments/base64",
-      "returns": "AddAttachmentAsBase64ToFlowResponse JSON (TextContent).",
-      "params": {
-        "username": "Doxi API username.",
-        "password": "Doxi API password.",
-        "signFlowId": "The unique ID of the signing flow.",
-        "request": "AddAttachmentBase64ToFlowRequest JSON containing base64 content, file name and optional metadata."
+      "name": "addAttachmentBase64ToFlow",
+      "description": "Adds a base64-encoded attachment to an existing flow.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "signFlowId": { "type": "string" },
+          "request": { "$ref": "#/types/AddAttachmentBase64ToFlowRequest" }
+        },
+        "required": [ "signFlowId", "request" ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "description": "Attachment creation result"
       }
     },
+
     {
-      "name": "CreateFlowFromTemplate",
-      "summary": "Creates a new signing flow from an existing template.",
-      "endpoint": "POST /ex/template/CreateFlowFromTemplate/{templateId}",
-      "returns": "CreateFlowResponse-like JSON with new SignFlowId and signer links (TextContent).",
-      "params": {
-        "username": "Doxi API username.",
-        "password": "Doxi API password.",
-        "templateId": "The template ID to base the flow on.",
-        "request": "CreateFlowFromTemplateRequest JSON (users, custom fields, description, etc.)."
+      "name": "createFlowFromTemplate",
+      "description": "Creates a new signing flow from an existing template.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "templateId": { "type": "string" },
+          "request": { "$ref": "#/types/CreateFlowFromTemplateRequest" }
+        },
+        "required": [ "templateId", "request" ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "description": "Created flow metadata and signer links"
       }
     },
+
     {
-      "name": "DeleteUserTemplate",
-      "summary": "Deletes a user template.",
-      "endpoint": "DELETE /ex/template/{templateId}",
-      "returns": "JSON { success: true, data: { templateId } } (TextContent).",
-      "params": {
-        "username": "Doxi API username.",
-        "password": "Doxi API password.",
-        "templateId": "The ID of the template to delete.",
-        "request": "DeleteTemplateRequest JSON (additional delete options if any)."
+      "name": "documentInfoBase64",
+      "description": "Extracts structured information from a base64-encoded document.",
+      "inputSchema": {
+        "$ref": "#/types/GetDocumentInfoRquest"
+      },
+      "outputSchema": {
+        "type": "object",
+        "description": "Extracted document structure"
       }
     },
+
     {
-      "name": "GetTemplate",
-      "summary": "Retrieves template metadata.",
-      "endpoint": "GET /ex/template/{templateId}",
-      "returns": "Template metadata JSON (TextContent), including TemplateName, FlowElements, Users, SendMethodType, TemplateType, etc.",
-      "params": {
-        "username": "Doxi API username.",
-        "password": "Doxi API password.",
-        "templateId": "The ID of the template."
+      "name": "searchInDocumentBase64",
+      "description": "Searches for text in a base64-encoded document.",
+      "inputSchema": {
+        "$ref": "#/types/SearchInDocumentBase64Request"
+      },
+      "outputSchema": {
+        "type": "object",
+        "description": "Search result with match locations"
       }
     },
+
     {
-      "name": "DeleteAttachmentFromTemplate",
-      "summary": "Deletes an attachment from a template.",
-      "endpoint": "DELETE /ex/template/{templateId}/attachments/{attachmentId}",
-      "returns": "JSON { success: true, data: { templateId, attachmentId } } (TextContent).",
-      "params": {
-        "username": "Doxi API username.",
-        "password": "Doxi API password.",
-        "templateId": "The template ID.",
-        "attachmentId": "The attachment ID to remove from the template."
+      "name": "mergeDocuments",
+      "description": "Merges multiple PDF documents into a single PDF.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "documents": {
+            "type": "array",
+            "items": { "$ref": "#/types/DataContent" }
+          }
+        },
+        "required": [ "documents" ]
+      },
+      "outputSchema": {
+        "$ref": "#/types/DataContent"
       }
     },
+
     {
-      "name": "DocumentInfo",
-      "summary": "Extracts structured information from a document file (e.g. pages, fields, text).",
-      "endpoint": "POST /ex/document/info",
-      "returns": "Document info JSON (TextContent).",
-      "params": {
-        "username": "Doxi API username.",
-        "password": "Doxi API password.",
-        "document": "Raw document bytes (PDF). In MCP this is provided as binary and sent as a file/stream body."
+      "name": "addTextsToPdf",
+      "description": "Adds text elements to a PDF document and returns the modified PDF.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "inputFileBase64": { "type": "string" },
+          "texts": {
+            "type": "array",
+            "items": { "$ref": "#/types/TextElement" }
+          }
+        },
+        "required": [ "inputFileBase64", "texts" ]
+      },
+      "outputSchema": {
+        "$ref": "#/types/DataContent"
       }
     },
-    {
-      "name": "DocumentInfoBase64",
-      "summary": "Extracts document info from a base64-encoded document.",
-      "endpoint": "POST /ex/document/info/base64",
-      "returns": "Document info JSON (TextContent).",
-      "params": {
-        "username": "Doxi API username.",
-        "password": "Doxi API password.",
-        "request": "GetDocumentInfoRquest JSON (Base64DocumentFile, DocumentFileName, and optional settings)."
-      }
-    },
-    {
-      "name": "SearchInDocumentBase64",
-      "summary": "Searches for text or patterns in a base64-encoded document.",
-      "endpoint": "POST /ex/document/search/base64",
-      "returns": "Search result JSON (TextContent) with matched locations.",
-      "params": {
-        "username": "Doxi API username.",
-        "password": "Doxi API password.",
-        "request": "SearchInDocumentBase64Request JSON containing Base64DocumentFile, search term(s), and options."
-      }
-    },
-    {
-      "name": "SearchInDocument",
-      "summary": "Searches for text or patterns in an uploaded document.",
-      "endpoint": "POST /ex/document/search",
-      "returns": "Search result JSON (TextContent) with matched locations.",
-      "params": {
-        "username": "Doxi API username.",
-        "password": "Doxi API password.",
-        "file": "Raw document bytes (PDF) to search in.",
-        "request": "SearchInDocumentRequest JSON containing search term(s) and options."
-      }
-    },
-    {
-      "name": "MergeDocuments",
-      "summary": "Merges multiple PDF documents into a single PDF.",
-      "endpoint": "POST /ex/document/merge",
-      "returns": "Merged PDF as DataContent (contentType=\"application/pdf\").",
-      "params": {
-        "username": "Doxi API username.",
-        "password": "Doxi API password.",
-        "documents": "Array of PDF byte arrays to merge, in order."
-      }
-    },
-    {
-      "name": "AddKit",
-      "summary": "Creates a new kit (a reusable bundle of flows or templates).",
-      "endpoint": "POST /ex/kit",
-      "returns": "Kit creation result JSON (TextContent).",
-      "params": {
-        "username": "Doxi API username.",
-        "password": "Doxi API password.",
-        "request": "ExAddKitRequest JSON describing the kit (name, flows/templates, settings)."
-      }
-    },
-    {
-      "name": "UpdateKit",
-      "summary": "Updates an existing kit.",
-      "endpoint": "PUT /ex/kit/{kitId}",
-      "returns": "JSON { success: true, data: { kitId } } (TextContent).",
-      "params": {
-        "username": "Doxi API username.",
-        "password": "Doxi API password.",
-        "kitId": "The ID of the kit to update.",
-        "request": "ExUpdateKitRequest JSON with updated kit configuration."
-      }
-    }, 
-    {
-      "name": "GetKit",
-      "summary": "Retrieves metadata for a kit.",
-      "endpoint": "GET /ex/kit/{kitId}",
-      "returns": "Kit metadata JSON (TextContent).",
-      "params": {
-        "username": "Doxi API username.",
-        "password": "Doxi API password.",
-        "kitId": "The ID of the kit."
-      }
-    },
-    {
-      "name": "GetKits",
-      "summary": "Lists all kits available for the tenant.",
-      "endpoint": "GET /ex/kit",
-      "returns": "JSON array of kits (TextContent).",
-      "params": {
-        "username": "Doxi API username.",
-        "password": "Doxi API password."
-      }
-    },
-    {
-      "name": "GetUserGroups",
-      "summary": "Retrieves groups for a user identified by key type and value.",
-      "endpoint": "GET /ex/user/{searchType}/{searchValue}/groups",
-      "returns": "JSON array of groups (TextContent).",
-      "params": {
-        "username": "Doxi API username.",
-        "password": "Doxi API password.",
-        "searchType": "ParticipantKeyType enum value (e.g. UserEmail, UserPhone).",
-        "searchValue": "Search key for the user (e.g. email address or phone)."
-      }
-    },
-    {
-      "name": "GetUserTemplates",
-      "summary": "Retrieves templates for a user identified by key type and value.",
-      "endpoint": "GET /ex/user/{searchType}/{searchValue}/templates",
-      "returns": "JSON array of templates (TextContent).",
-      "params": {
-        "username": "Doxi API username.",
-        "password": "Doxi API password.",
-        "searchType": "ParticipantKeyType enum.",
-        "searchValue": "Search key for the user (e.g. email address or phone)."
-      }
-    },
-    {
-      "name": "GetUserIdByEmail",
-      "summary": "Retrieves user ID by email.",
-      "endpoint": "GET /ex/user/byEmail/{email}/id",
-      "returns": "JSON object with userId (TextContent).",
-      "params": {
-        "username": "Doxi API username.",
-        "password": "Doxi API password.",
-        "email": "User email address."
-      }
-    },
-    {
-      "name": "GetUsers",
-      "summary": "Queries users with filter parameters.",
-      "endpoint": "GET /ex/users",
-      "returns": "Paged results JSON of users (TextContent).",
-      "params": {
-        "username": "Doxi API username.",
-        "password": "Doxi API password.",
-        "queryParams": "Dictionary<string, object> used as query parameters (e.g. page, pageSize, filters)."
-      }
-    },
-    {
-      "name": "AddTemplate",
-      "summary": "Create a Doxi template. The 'inputFileBase64' parameter MUST receive the base64 file uploaded by the user (PDF/DOCX/Image).Parameter prompt contains all other prompt text that the client add.",
-      "endpoint": "POST /ex/template",
-      "returns": "Template creation result JSON (TextContent) with templateId and metadata.",
-      "params": {
-        "username": "Doxi API username.",
-        "password": "Doxi API password.",
-        "prompt": "Instructions describing the template, including template name, signers, sender email, and fields.",
-        "inputFileBase64": "Attached file in the request pass as base64 text"
-      }
-    },
+
     {
       "name": "AddTexts",
-      "summary": "Adds text elements to a PDF document and returns the modified PDF.",
-      "endpoint": "MCP Tool",
-      "returns": "Modified PDF as DataContent (contentType=\"application/pdf\").",
-      "params": {
-        "prompt": "texts to add to the document - value and position description",
-        "inputFileBase64": "PDF document as base64-encoded string."
+      "description": "Adds text elements to a PDF document using AI based on a prompt and returns the modified PDF. The inputFile parameter accepts file paths (e.g., 'C:\\path\\to\\file.pdf' or './document.pdf'), file URIs (e.g., 'file:///path/to/file.pdf'), or base64-encoded strings. The prompt describes what text should be added to the document.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "description": "Text describing what should be added to the document"
+          },
+          "inputFile": {
+            "type": "string",
+            "description": "PDF file input as file path, file URI, or base64-encoded string. Examples: 'C:\\path\\to\\file.pdf', './document.pdf', 'file:///path/to/file.pdf', or base64 string."
+          }
+        },
+        "required": [ "prompt", "inputFile" ]
+      },
+      "outputSchema": {
+        "$ref": "#/types/DataContent"
       }
     }
-
   ],
+
   "enums": {
     "ParticipantKeyType": {
-      "kind": "enum",
-      "underlyingType": "integer",
-      "values": [
-        {
-          "name": "UserId",
-          "value": 0
-        },
-        {
-          "name": "UserEmail",
-          "value": 1
-        },
-        {
-          "name": "UserPhone",
-          "value": 2
-        },
-        {
-          "name": "UserName",
-          "value": 3
-        },
-        {
-          "name": "GroupId",
-          "value": 4
-        }
-      ]
+      "type": "integer",
+      "values": {
+        "UserId": 0,
+        "UserEmail": 1,
+        "UserPhone": 2,
+        "UserName": 3,
+        "GroupId": 4
+      }
     }
   },
+
   "types": {
     "DataContent": {
-      "description": "Wrapper used by MCP to pass/receive binary files such as PDFs or ZIPs.",
       "type": "object",
       "properties": {
-        "uri": {
-          "type": "string",
-          "description": "Logical file name, e.g. 'registration_tour_guide_avshalom.pdf'."
-        },
-        "contentType": {
-          "type": "string",
-          "description": "MIME type, e.g. 'application/pdf'."
-        },
+        "uri": { "type": "string" },
+        "contentType": { "type": "string" },
         "data": {
           "type": "string",
-          "format": "binary",
-          "description": "Raw file bytes. In MCP this is transmitted as binary, not base64."
+          "format": "binary"
         }
       },
-      "required": [
-        "uri",
-        "data"
-      ]
+      "required": [ "uri", "data" ]
     },
-    "ParticipantKey": {
-      "description": "Identifies a Doxi user or group by key and type.",
-      "type": "object",
-      "properties": {
-        "key": {
-          "type": "string",
-          "description": "Search value (e.g. email, phone, userId)."
-        },
-        "type": {
-          "$ref": "#/enums/ParticipantKeyType",
-          "description": "ParticipantKeyType numeric enum value."
-        }
-      },
-      "required": [
-        "key",
-        "type"
-      ]
-    },
+
     "GetFlowsByFilterRequest": {
-      "description": "Filter object for searching flows (SearchFlow).",
       "type": "object",
       "properties": {
-        "signer": {
-          "type": "string",
-          "description": "Signer identifier (email / user id / phone, depending on configuration)."
-        },
-        "sender": {
-          "type": "string",
-          "description": "Sender identifier."
-        },
+        "signer": { "type": "string" },
+        "sender": { "type": "string" },
         "fromDate": {
           "type": "string",
-          "format": "date-time",
-          "description": "Start of date range filter."
+          "format": "date-time"
         },
         "toDate": {
           "type": "string",
-          "format": "date-time",
-          "description": "End of date range filter."
+          "format": "date-time"
         },
-        "description": {
-          "type": "string",
-          "description": "Free-text search on the flow description."
-        },
-        "kitId": {
-          "type": "string",
-          "description": "Filter flows that were created from a specific kit."
-        },
+        "description": { "type": "string" },
+        "kitId": { "type": "string" },
         "customFields": {
           "type": "object",
-          "description": "Key/value filters on custom fields.",
-          "additionalProperties": {
-            "type": "string"
-          }
+          "additionalProperties": { "type": "string" }
         }
       }
     },
+
     "GetFlowsStatusRequest": {
-      "description": "Request body for GetFlowsStatus containing the list of flow IDs.",
       "type": "object",
       "properties": {
         "signFlowIds": {
           "type": "array",
-          "description": "Array of flow IDs whose status should be retrieved.",
-          "items": {
-            "type": "string"
-          }
+          "items": { "type": "string" }
         }
       },
-      "required": [
-        "signFlowIds"
-      ]
+      "required": [ "signFlowIds" ]
     },
+
     "SetFlowActionRequest": {
-      "description": "Request body describing an action to apply to a flow (SetFlowAction).",
       "type": "object",
       "properties": {
-        "action": {
-          "type": "string",
-          "description": "Action to apply (e.g. approve, reject, delegate)."
-        },
-        "comment": {
-          "type": "string",
-          "description": "Optional comment for the action."
-        },
-        "delegateTo": {
-          "type": "string",
-          "description": "If action is delegate, identifier of the user to delegate to."
-        }
+        "action": { "type": "string" },
+        "comment": { "type": "string" },
+        "delegateTo": { "type": "string" }
       },
-      "required": [
-        "action"
-      ]
+      "required": [ "action" ]
     },
+
     "GetFlowAttachmentFieldRequest": {
-      "description": "Request body for GetFlowAttachmentField which identifies a specific attachment field.",
       "type": "object",
       "properties": {
-        "fieldId": {
-          "type": "string",
-          "description": "Identifier of the attachment field to download."
-        }
+        "fieldId": { "type": "string" }
       },
-      "required": [
-        "fieldId"
-      ]
+      "required": [ "fieldId" ]
     },
+
     "AddAttachmentBase64ToFlowRequest": {
-      "description": "Request body for adding an attachment encoded as base64 to an existing flow.",
       "type": "object",
       "properties": {
-        "base64DocumentFile": {
-          "type": "string",
-          "description": "Base64 encoded file content."
-        },
-        "documentFileName": {
-          "type": "string",
-          "description": "File name of the attachment."
-        },
-        "contentType": {
-          "type": "string",
-          "description": "MIME type of the attachment."
-        },
-        "metadata": {
-          "type": "object",
-          "description": "Optional custom metadata to associate with the attachment.",
-          "additionalProperties": {
-            "type": "string"
-          }
-        }
+        "base64DocumentFile": { "type": "string" },
+        "documentFileName": { "type": "string" },
+        "contentType": { "type": "string" }
       },
-      "required": [
-        "base64DocumentFile",
-        "documentFileName"
-      ]
+      "required": [ "base64DocumentFile", "documentFileName" ]
     },
+
     "CreateFlowFromTemplateRequest": {
-      "description": "Request body for creating a new flow from an existing template.",
       "type": "object",
       "properties": {
         "users": {
           "type": "array",
-          "description": "Users/signers participating in the created flow.",
-          "items": {
-            "type": "object"
-          }
+          "items": { "type": "object" }
         },
         "recipients": {
           "type": "array",
-          "description": "CC recipients for the created flow.",
-          "items": {
-            "$ref": "#/types/ParticipantKey"
-          }
+          "items": { "type": "object" }
         },
-        "description": {
-          "type": "string",
-          "description": "Description of the created flow."
-        },
+        "description": { "type": "string" },
         "customFields": {
           "type": "object",
-          "description": "Custom fields to populate in the flow.",
-          "additionalProperties": {
-            "type": "string"
-          }
+          "additionalProperties": { "type": "string" }
         }
       }
     },
-    "DeleteTemplateRequest": {
-      "description": "Additional options for deleting a template (DeleteUserTemplate).",
-      "type": "object",
-      "properties": {
-        "deleteDocuments": {
-          "type": "boolean",
-          "description": "If true, associated documents are also deleted (if supported by API)."
-        }
-      }
-    },
+
     "GetDocumentInfoRquest": {
-      "description": "Request body for DocumentInfoBase64 (typo preserved to match API).",
       "type": "object",
       "properties": {
-        "base64DocumentFile": {
-          "type": "string",
-          "description": "Base64 encoded document content."
-        },
-        "documentFileName": {
-          "type": "string",
-          "description": "Logical document file name."
-        }
+        "base64DocumentFile": { "type": "string" },
+        "documentFileName": { "type": "string" }
       },
-      "required": [
-        "base64DocumentFile",
-        "documentFileName"
-      ]
+      "required": [ "base64DocumentFile", "documentFileName" ]
     },
+
     "SearchInDocumentBase64Request": {
-      "description": "Request body for searching text or patterns in a base64-encoded document.",
       "type": "object",
       "properties": {
-        "base64DocumentFile": {
-          "type": "string",
-          "description": "Base64 encoded document content."
-        },
-        "searchText": {
-          "type": "string",
-          "description": "Text or pattern to search for."
-        }
+        "base64DocumentFile": { "type": "string" },
+        "searchText": { "type": "string" }
       },
-      "required": [
-        "base64DocumentFile",
-        "searchText"
-      ]
+      "required": [ "base64DocumentFile", "searchText" ]
     },
-    "SearchInDocumentRequest": {
-      "description": "Options used when searching in an uploaded document (SearchInDocument).",
-      "type": "object",
-      "properties": {
-        "searchText": {
-          "type": "string",
-          "description": "Text or pattern to search for."
-        }
-      },
-      "required": [
-        "searchText"
-      ]
-    },
-    "ExAddKitRequest": {
-      "description": "Request body for creating a new kit (AddKit).",
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string",
-          "description": "Kit name."
-        },
-        "description": {
-          "type": "string",
-          "description": "Optional description of what the kit contains."
-        },
-        "flows": {
-          "type": "array",
-          "description": "Definitions of flows/templates included in the kit.",
-          "items": {
-            "type": "object"
-          }
-        }
-      }
-    },
-    "ExUpdateKitRequest": {
-      "description": "Request body for updating an existing kit (UpdateKit).",
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string",
-          "description": "Updated kit name."
-        },
-        "description": {
-          "type": "string",
-          "description": "Updated kit description."
-        },
-        "flows": {
-          "type": "array",
-          "description": "Updated kit flows/templates configuration.",
-          "items": {
-            "type": "object"
-          }
-        }
-      }
-    },
+
     "TextElement": {
-      "description": "Represents a text element to be added to a PDF document (AddTexts).",
       "type": "object",
       "properties": {
-        "text": {
-          "type": "string",
-          "description": "The text content to add to the PDF."
-        },
+        "text": { "type": "string" },
         "font": {
           "type": "string",
-          "description": "Font name (e.g., Helvetica, Arial, Times, Courier). Defaults to Helvetica if not specified."
+          "default": "Helvetica"
         },
-        "fontSize": {
-          "type": "integer",
-          "description": "Font size in points."
-        },
-        "x": {
-          "type": "number",
-          "description": "X coordinate position on the page (in points, from left edge)."
-        },
-        "y": {
-          "type": "number",
-          "description": "Y coordinate position on the page (in points, from top edge)."
-        },
-        "width": {
-          "type": "number",
-          "description": "Width of the text area (in points)."
-        },
-        "height": {
-          "type": "number",
-          "description": "Height of the text area (in points)."
-        },
-        "pageNumber": {
-          "type": "integer",
-          "description": "Page number where the text should be added (1-based)."
-        }
+        "fontSize": { "type": "integer" },
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "width": { "type": "number" },
+        "height": { "type": "number" },
+        "pageNumber": { "type": "integer" }
       },
-      "required": [
-        "text",
-        "fontSize",
-        "x",
-        "y",
-        "width",
-        "height",
-        "pageNumber"
-      ]
+      "required": [ "text", "fontSize", "x", "y", "width", "height", "pageNumber" ]
     }
   }
 }
